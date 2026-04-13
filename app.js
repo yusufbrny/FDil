@@ -4778,14 +4778,52 @@ window.addEventListener('beforeinstallprompt', (e) => {
     deferredPrompt = e;
     pwaInstallable = true;
     updatePWAInstallUI();
+    showPWAInstallBanner();
 });
 
 window.addEventListener('appinstalled', () => {
     deferredPrompt = null;
     pwaInstallable = false;
     updatePWAInstallUI();
+    hidePWAInstallBanner();
     showToast('🎉 PWA kuruldu! Ana ekrandan açabilirsin');
 });
+
+function showPWAInstallBanner() {
+    if (window.matchMedia('(display-mode: standalone)').matches) return;
+    if (localStorage.getItem('ydt_pwa_banner_dismissed')) return;
+    
+    const existing = document.getElementById('pwa-install-banner');
+    if (existing) return;
+    
+    const banner = document.createElement('div');
+    banner.id = 'pwa-install-banner';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#628141,#8BAE66);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 12px rgba(0,0,0,0.15);font-family:inherit';
+    banner.innerHTML = `
+        <div style="display:flex;align-items:center;gap:12px;flex:1">
+            <span style="font-size:24px">📱</span>
+            <div>
+                <div style="font-size:14px;font-weight:700;color:white">FDil'i Ana Ekrana Ekle</div>
+                <div style="font-size:11px;color:rgba(255,255,255,0.85)">Offline çalışsın, hızlı açılsın</div>
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+            <button onclick="installPWA()" style="background:white;color:#628141;border:none;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer">📲 Kur</button>
+            <button onclick="dismissPWAInstallBanner()" style="background:rgba(255,255,255,0.2);color:white;border:none;width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+        </div>
+    `;
+    document.body.appendChild(banner);
+}
+
+function hidePWAInstallBanner() {
+    const banner = document.getElementById('pwa-install-banner');
+    if (banner) banner.remove();
+}
+
+function dismissPWAInstallBanner() {
+    hidePWAInstallBanner();
+    localStorage.setItem('ydt_pwa_banner_dismissed', '1');
+}
 
 function updatePWAInstallUI() {
     setTimeout(() => {
@@ -4812,6 +4850,7 @@ function updatePWAInstallUI() {
 }
 
 async function installPWA() {
+    dismissPWAInstallBanner();
     if (!deferredPrompt) {
         showToast('PWA kurulumu tarayıcı tarafından desteklenmiyor');
         return;
