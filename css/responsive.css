@@ -1,0 +1,1379 @@
+/* ═══════════════════════════════════════════════════════════════
+   responsive.css  —  Tablet & Masaüstü Tam Uyum
+   style.css'ten SONRA yüklenmeli
+   ═══════════════════════════════════════════════════════════════
+ 
+   BREAKPOINTS:
+   • Mobil  : < 640px   (varsayılan — style.css bunu kapsar)
+   • Tablet : 640–1023px
+   • Desktop: ≥ 1024px
+   ─────────────────────────────────────────────────────────────── */
+
+/* ──────────────────────────────────────────────────────────────
+   TABLET  (640px – 1023px)
+   ────────────────────────────────────────────────────────────── */
+@media (min-width: 640px) {
+
+    /* ── Kök değişkenler ── */
+    :root {
+        --header-h: 70px;
+        --radius: 18px;
+        --radius-sm: 12px;
+    }
+
+    /* ── Uygulama kabı: tablet'te tam genişlik, ortalanmış ── */
+    #app {
+        max-width: 720px;
+        border-left: 1px solid var(--border);
+        border-right: 1px solid var(--border);
+        box-shadow: 0 0 60px rgba(0, 0, 0, .06);
+    }
+
+    /* ── Header ── */
+    .header,
+    .unit-header {
+        padding: 14px 24px;
+    }
+
+    .header-logo {
+        font-size: 22px;
+    }
+
+    .header-btn,
+    .theme-btn {
+        padding: 8px 18px;
+        font-size: 14px;
+    }
+
+    /* ── Ana sayfa arama ── */
+    .global-search-wrap {
+        padding: 12px 24px 10px;
+    }
+
+    .global-search-input {
+        font-size: 16px;
+        padding: 13px 46px 13px 44px;
+    }
+
+    .mix-mode-dropdown {
+        left: 0;
+        right: 0;
+    }
+
+    /* ── Ana Sayfa Dashboard & Araçlar & Kitaplık: tablet+ ── */
+    .home-dashboard-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .home-dashboard-grid #sr-home-card {
+        grid-column: 1 / -1;
+    }
+
+    .home-tools-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    /* ── Ünite grid & Kitaplık: 3 sütun ── */
+    .home-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+    }
+
+    .bookshelf-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+    }
+
+    /* ── Kart içerikleri ── */
+    .home-card {
+        padding: 18px;
+    }
+
+    .home-card-title {
+        font-size: 16px;
+    }
+
+    /* ── Unit ekranı ── */
+    .mode-scroll {
+        padding: 20px 24px;
+    }
+
+    /* ── Mod kartları: tablet'te 3 sütun ── */
+    .mode-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+    }
+
+    .mode-card.highlight {
+        grid-column: span 3;
+    }
+
+    .mode-card {
+        padding: 24px 20px;
+    }
+
+    .mode-card-icon {
+        font-size: 30px;
+    }
+
+    .mode-card-title {
+        font-size: 15px;
+    }
+
+    /* ── Flash kart ── */
+    .flash-wrap {
+        padding: 20px 24px;
+        overflow: hidden;
+    }
+
+    .flash-card-wrap {
+        max-width: 580px;
+        min-height: 220px;
+    }
+
+    .swipe-btn-row {
+        max-width: 580px;
+    }
+
+    /* ── MC / FIB ── */
+    .mc-wrap,
+    .fib-wrap {
+        padding: 20px 32px;
+        max-width: 680px;
+        margin: 0 auto;
+        width: 100%;
+    }
+
+    .mc-question {
+        padding: 28px 28px;
+    }
+
+    .mc-q-word {
+        font-size: 32px;
+    }
+
+    .mc-opt {
+        font-size: 17px;
+        padding: 18px 24px;
+    }
+
+    /* ── Sonuç ekranı ── */
+    .result-wrap {
+        padding: 48px 32px;
+    }
+
+    .result-emoji {
+        font-size: 72px;
+    }
+
+    .result-title {
+        font-size: 32px;
+    }
+
+    .stat-row {
+        max-width: 380px;
+    }
+
+    /* ── Stats panel: tablet'te ortalanmış geniş panel ── */
+    .stats-panel {
+        max-width: 680px;
+        border-radius: 24px 24px 0 0;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    /* ── Word modal ── */
+    .word-modal {
+        max-width: 600px;
+        border-radius: 28px 28px 0 0;
+    }
+
+    .word-modal-title {
+        font-size: 32px;
+    }
+
+    /* ── Sözlük/Learn ── */
+    .learn-wrap {
+        padding: 20px 24px;
+    }
+
+    /* ── HUD pozisyonu ── */
+    #gm-hud {
+        top: 14px;
+        right: 20px;
+    }
+
+    .gm-hud-inner {
+        padding: 6px 14px 6px 10px;
+        gap: 9px;
+    }
+
+    .gm-xp-bar-wrap {
+        width: 90px;
+        height: 6px;
+    }
+
+    .gm-xp-num {
+        font-size: 12px;
+    }
+
+    .gm-level-badge {
+        font-size: 11px;
+        padding: 2px 7px;
+    }
+
+    .gm-streak-num {
+        font-size: 14px;
+    }
+
+    /* ── Gamification modalleri ── */
+    .gm-levelup-card {
+        max-width: 360px;
+        padding: 40px 36px 36px;
+    }
+
+    .gm-levelup-num {
+        font-size: 80px;
+    }
+
+    /* ── Streak toast ── */
+    .gm-streak-badge-toast {
+        right: 24px;
+        top: 72px;
+    }
+
+    /* ── Heatmap ── */
+    .gm-hm-wrap {
+        padding: 0 0 12px;
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   DESKTOP  (≥ 1024px)
+   ────────────────────────────────────────────────────────────── */
+@media (min-width: 1024px) {
+
+    :root {
+        --header-h: 72px;
+        --radius: 20px;
+        --radius-sm: 14px;
+    }
+
+    /* ── App: masaüstünde sidebar + main layout ── */
+    body {
+        overflow: auto;
+    }
+
+    #app {
+        max-width: 100%;
+        height: 100dvh;
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        grid-template-rows: 1fr;
+        border: none;
+        box-shadow: none;
+        overflow: hidden;
+    }
+
+    /* ── Tüm screen'ler: #app grid'inde tam genişlik ──
+       Home'un içinde kendi sidebar grid'i var.
+       Diğer ekranlar 280px boş bırakmadan tam kaplar. */
+    .screen {
+        grid-column: 1 / -1;
+        grid-row: 1;
+    }
+
+    /* ── Home ekranı sidebar düzeni ── */
+    #screen-home {
+        grid-column: 1 / -1;
+        display: grid !important;
+        grid-template-columns: 280px 1fr;
+        grid-template-rows: auto auto 1fr;
+        overflow: hidden;
+    }
+
+    /* ── Sidebar: sol panel ── */
+    #screen-home .header {
+        grid-column: 1;
+        grid-row: 1 / 4;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-start;
+        border-bottom: none;
+        border-right: 1px solid var(--border);
+        padding: 28px 20px;
+        gap: 0;
+        min-height: 100dvh;
+        background: var(--surface);
+        overflow-y: auto;
+    }
+
+    .header-logo {
+        font-size: 20px;
+        margin-bottom: 4px;
+    }
+
+    .header-sub {
+        margin-bottom: 28px;
+    }
+
+    .header-actions {
+        flex-direction: column;
+        width: 100%;
+        gap: 10px;
+        margin-top: auto;
+    }
+
+    .header-btn,
+    .theme-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 11px 18px;
+        font-size: 14px;
+        border-radius: 14px;
+    }
+
+    /* ── Ana içerik: sağ panel ── */
+    #screen-home .global-search-wrap {
+        grid-column: 2;
+        grid-row: 1;
+        padding: 20px 32px 0;
+        background: var(--bg);
+    }
+
+    #screen-home .global-search-input {
+        font-size: 16px;
+        padding: 13px 46px 13px 44px;
+        border-radius: 16px;
+    }
+
+    #screen-home #home-normal-content {
+        grid-column: 2;
+        grid-row: 2 / 4;
+        overflow-y: auto;
+        padding: 16px 32px 32px;
+        gap: 14px;
+    }
+
+    #screen-home #home-search-content {
+        grid-column: 2;
+        grid-row: 1 / 4;
+        overflow: hidden;
+    }
+
+    /* ── Ünite grid & Kitaplık: masaüstünde 3 sütun ── */
+    .home-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+    }
+
+    .bookshelf-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+    }
+
+    .unit-card {
+        padding: 18px;
+    }
+
+    /* ── Bağlantı kartları (Hata Kumbarası vb.) ── */
+    .home-card {
+        padding: 20px;
+    }
+
+    .home-card-title {
+        font-size: 17px;
+    }
+
+    /* ── Filtre satırı ── */
+    .filter-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    /* ── Ünite ekranı: sidebar yok, iki bölüm ── */
+    #screen-unit.active {
+        display: grid !important;
+        grid-template-columns: 300px 1fr;
+        grid-template-rows: auto 1fr;
+        overflow: hidden;
+    }
+
+    #screen-unit .unit-header {
+        grid-column: 1 / -1;
+        padding: 16px 32px;
+    }
+
+    #screen-unit .mode-scroll {
+        grid-column: 1 / -1;
+        padding: 24px 32px;
+        overflow-y: auto;
+    }
+
+    .mode-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+    }
+
+    .mode-card.highlight {
+        grid-column: span 3;
+        padding: 28px;
+    }
+
+    .mode-card {
+        padding: 26px 20px;
+    }
+
+    .mode-card-icon {
+        font-size: 32px;
+    }
+
+    .mode-card-title {
+        font-size: 16px;
+    }
+
+    .mode-card-desc {
+        font-size: 13px;
+    }
+
+    /* ── Flash kart ekranı ── */
+    #screen-flash,
+    #screen-phrasal-flash {
+        overflow: hidden;
+    }
+
+    .flash-wrap {
+        padding: 24px 48px;
+        max-width: 800px;
+        margin: 0 auto;
+        width: 100%;
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .flash-card-wrap {
+        max-width: 640px;
+        margin: 0 auto;
+        width: 100%;
+        flex: 1;
+        min-height: 280px;
+    }
+
+    .swipe-btn-row {
+        max-width: 640px;
+        margin: 0 auto;
+        width: 100%;
+    }
+
+    .flash-progress-row {
+        max-width: 640px;
+        margin: 0 auto;
+        width: 100%;
+    }
+
+    /* ── MC / FIB: ortalı, geniş ── */
+    .mc-wrap,
+    .fib-wrap {
+        max-width: 760px;
+        margin: 0 auto;
+        width: 100%;
+        padding: 28px 48px;
+    }
+
+    .mc-question {
+        padding: 32px 36px;
+    }
+
+    .mc-q-word {
+        font-size: 36px;
+    }
+
+    .mc-options {
+        gap: 14px;
+    }
+
+    .mc-opt {
+        font-size: 18px;
+        padding: 20px 28px;
+        border-radius: 18px;
+    }
+
+    .fib-question {
+        padding: 28px 32px;
+    }
+
+    .fib-sentence {
+        font-size: 20px;
+    }
+
+    .fib-input {
+        font-size: 18px;
+        padding: 18px;
+    }
+
+    .fib-submit {
+        padding: 18px 28px;
+        font-size: 16px;
+    }
+
+    /* ── Sonuç ── */
+    .result-wrap {
+        padding: 64px 48px;
+    }
+
+    .result-emoji {
+        font-size: 80px;
+    }
+
+    .result-title {
+        font-size: 36px;
+    }
+
+    .result-sub {
+        font-size: 16px;
+    }
+
+    .stat-row {
+        max-width: 400px;
+    }
+
+    .stat-num {
+        font-size: 32px;
+    }
+
+    .result-btn {
+        max-width: 380px;
+        font-size: 16px;
+        padding: 18px 32px;
+    }
+
+    /* ── Stats panel: masaüstünde ortalanmış modal ── */
+    .stats-overlay {
+        align-items: center;
+    }
+
+    .stats-panel {
+        max-width: 760px;
+        border-radius: 24px;
+        max-height: 88vh;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        padding: 0 20px 20px;
+    }
+
+    .stats-card {
+        padding: 18px;
+    }
+
+    .stats-card-num {
+        font-size: 26px;
+    }
+
+    /* ── Word modal: masaüstünde ortalanmış ── */
+    .word-modal-overlay {
+        align-items: center;
+    }
+
+    .word-modal {
+        border-radius: 28px;
+        max-width: 620px;
+        max-height: 88vh;
+    }
+
+    .word-modal-handle {
+        display: none;
+    }
+
+    .word-modal-title {
+        font-size: 34px;
+    }
+
+    /* ── Learn/Sözlük ── */
+    .learn-wrap {
+        padding: 24px 48px;
+        max-width: 900px;
+        margin: 0 auto;
+        width: 100%;
+    }
+
+    .learn-item {
+        padding: 16px 20px;
+    }
+
+    .learn-word {
+        font-size: 18px;
+    }
+
+    /* ── Error / Mix / Phrasal ekranları ── */
+    #screen-error .mc-wrap,
+    #screen-mix .mc-wrap,
+    #screen-phrasal-quiz .mc-wrap {
+        max-width: 760px;
+        margin: 0 auto;
+    }
+
+    /* ── My Words ── */
+    .add-word-wrap {
+        max-width: 640px;
+        margin: 0 auto;
+    }
+
+    /* ── Phrasal Verbs listesi ── */
+    #screen-phrasal .mode-scroll {
+        padding: 24px 48px;
+    }
+
+    .pv-item {
+        margin: 0 0 12px;
+    }
+
+    /* ── HUD: daha büyük, sağda alt köşe yerine üst köşe ── */
+    #gm-hud {
+        top: 16px;
+        right: 28px;
+    }
+
+    .gm-hud-inner {
+        padding: 7px 16px 7px 12px;
+        gap: 10px;
+        border-radius: 50px;
+    }
+
+    .gm-xp-bar-wrap {
+        width: 110px;
+        height: 7px;
+    }
+
+    .gm-xp-num {
+        font-size: 13px;
+    }
+
+    .gm-streak-num {
+        font-size: 15px;
+    }
+
+    .gm-level-badge {
+        font-size: 12px;
+        padding: 2px 8px;
+    }
+
+    .gm-streak-icon {
+        font-size: 18px;
+    }
+
+    /* ── Gamification: level-up modal ── */
+    .gm-levelup-card {
+        max-width: 400px;
+        padding: 48px 40px 40px;
+    }
+
+    .gm-levelup-num {
+        font-size: 88px;
+    }
+
+    .gm-levelup-name {
+        font-size: 22px;
+    }
+
+    .gm-levelup-stars {
+        font-size: 26px;
+        letter-spacing: 10px;
+    }
+
+    /* ── Streak toast: sağda alt değil üstte ── */
+    .gm-streak-badge-toast {
+        right: 32px;
+        top: 80px;
+        padding: 16px 22px;
+    }
+
+    .gm-sb-icon {
+        font-size: 34px;
+    }
+
+    .gm-sb-label {
+        font-size: 15px;
+    }
+
+    /* ── XP burst daha büyük ── */
+    .gm-xp-burst {
+        font-size: 42px;
+    }
+
+    /* ── Heatmap tam genişlik ── */
+    .gm-hm-wrap {
+        padding: 0 0 16px;
+    }
+
+    .gm-hm-title {
+        font-size: 15px;
+    }
+
+    .gm-hm-stat {
+        font-size: 12px;
+    }
+
+    /* ── Stats XP blok ── */
+    .gm-stats-xp-row {
+        gap: 14px;
+    }
+
+    .gm-stats-xp-card {
+        padding: 18px;
+    }
+
+    .gm-stats-xp-level {
+        font-size: 26px;
+    }
+
+    .gm-stats-streak-card {
+        min-width: 110px;
+        padding: 18px;
+    }
+
+    .gm-stats-streak-num {
+        font-size: 28px;
+    }
+
+    .gm-badge-chip {
+        padding: 10px 13px;
+        min-width: 52px;
+        font-size: 20px;
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   GENİŞ MASAÜSTÜ  (≥ 1400px)
+   ────────────────────────────────────────────────────────────── */
+@media (min-width: 1400px) {
+
+    #app {
+        grid-template-columns: 320px 1fr;
+    }
+
+    #screen-home {
+        grid-template-columns: 320px 1fr;
+    }
+
+    #screen-home .header {
+        padding: 36px 24px;
+    }
+
+    .home-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .mode-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .mode-card.highlight {
+        grid-column: span 4;
+    }
+
+    .mc-wrap,
+    .fib-wrap {
+        max-width: 860px;
+        padding: 32px 64px;
+    }
+
+    .mc-q-word {
+        font-size: 40px;
+    }
+
+    .flash-card-wrap,
+    .flash-progress-row,
+    .swipe-btn-row {
+        max-width: 720px;
+    }
+
+    .stats-panel {
+        max-width: 860px;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .word-modal {
+        max-width: 700px;
+    }
+
+    #gm-hud {
+        right: 36px;
+    }
+
+    .gm-xp-bar-wrap {
+        width: 130px;
+    }
+}
+
+/* ── Desktop: flash ekranı overflow sorununu çöz ── */
+@media (min-width: 1024px) {
+
+    #screen-flash .flash-wrap,
+    #screen-phrasal-flash .flash-wrap {
+        height: 100%;
+    }
+
+    /* Home sidebar'da filter-row ve search doğru yerleşsin */
+    #screen-home .filter-row {
+        flex-shrink: 0;
+    }
+
+    /* Diğer tüm ekranlar (flash, mc, fib vb.) tam genişlik */
+    #screen-flash,
+    #screen-mc,
+    #screen-fib,
+    #screen-learn,
+    #screen-error,
+    #screen-mix,
+    #screen-syn-quiz,
+    #screen-ant-quiz,
+    #screen-mywords,
+    #screen-phrasal,
+    #screen-phrasal-flash,
+    #screen-phrasal-quiz,
+    #screen-dict,
+    #screen-reading,
+    #screen-speed,
+    #screen-coach,
+    #screen-leaderboard,
+    #screen-profile,
+    #screen-unit {
+        grid-column: 1 / -1 !important;
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   YÜKSEK EKRANLAR  (≥ 800px yükseklik + masaüstü)
+   Flash kart ve MC için daha iyi dikey kullanım
+   ────────────────────────────────────────────────────────────── */
+@media (min-width: 1024px) and (min-height: 800px) {
+    .flash-card-wrap {
+        min-height: 360px;
+    }
+
+    .mc-question {
+        padding: 40px 40px;
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   DOKUNMATIK CİHAZ İYİLEŞTİRMELERİ
+   ────────────────────────────────────────────────────────────── */
+
+@media (hover: none) and (pointer: coarse) {
+
+    /* Hover efektlerini kaldır (dokunmatik'te gerekmez) */
+    .mode-card:hover,
+    .unit-card:hover,
+    .home-card:hover {
+        transform: none;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .mc-opt:hover:not(.disabled) {
+        transform: none;
+        background: var(--card);
+        border-color: var(--border);
+    }
+
+    /* Dokunma alanlarını büyüt */
+    .mc-opt {
+        min-height: 52px;
+    }
+
+    .swipe-btn {
+        min-height: 52px;
+        padding: 14px 28px;
+    }
+
+    .header-btn,
+    .theme-btn {
+        min-height: 40px;
+    }
+}
+
+/* ── iOS Safari: bottom safe area ── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .swipe-btn-row {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .home-content {
+        padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    }
+}
+
+/* ── Landscape mobil: flash kartı sıkışmasın ── */
+@media (max-height: 500px) and (orientation: landscape) {
+    .flash-face {
+        padding: 12px 16px;
+    }
+
+    .flash-tap-icon {
+        display: none;
+    }
+
+    .flash-word {
+        font-size: clamp(18px, 4vw, 26px);
+        margin-bottom: 4px;
+    }
+
+    .flash-hint-bottom {
+        display: none;
+    }
+
+    .flash-example {
+        font-size: 11px;
+        margin-top: 6px;
+        padding: 6px 10px;
+    }
+
+    .swipe-btn {
+        padding: 10px 12px;
+        min-height: 44px;
+        font-size: 13px;
+    }
+
+    .flash-swipe-guide {
+        display: none;
+    }
+}
+
+/* ── Responsive Adjustments ── */
+@media (max-width: 400px) {
+    .gm-achievements-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .quest-home-card {
+        padding: 12px;
+    }
+
+    /* Flash card responsive */
+    .flash-wrap {
+        padding: 12px 14px;
+    }
+
+    .flash-card-wrap {
+        min-height: 200px;
+    }
+
+    .flash-word {
+        font-size: 24px !important;
+    }
+
+    .flash-meaning {
+        font-size: 17px !important;
+    }
+
+    .flash-flip-btn {
+        padding: 9px 18px;
+        font-size: 13px;
+    }
+
+    .swipe-btn {
+        padding: 11px 10px;
+        font-size: 13px;
+    }
+
+    /* Letter nav — tablet */
+    .letter-nav-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 12px;
+    }
+}
+
+/* ── Küçük mobil (< 380px): buton metni kısalt ── */
+@media (max-width: 380px) {
+    .swipe-btn {
+        font-size: 13px;
+        padding: 14px 8px;
+        gap: 3px;
+    }
+
+    .flash-word {
+        font-size: clamp(20px, 6vw, 28px);
+    }
+
+    .flash-meaning {
+        font-size: clamp(16px, 5vw, 22px);
+    }
+
+    .unit-title-h {
+        font-size: 15px;
+        max-width: 160px;
+    }
+}
+
+@media (max-width: 360px) {
+    .home-grid,
+    .bookshelf-grid,
+    .dict-dual-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.unit-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.25s cubic-bezier(0.25, 0.8, 0.25, 1), border-color 0.25s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+    box-shadow: var(--shadow-sm);
+}
+
+.unit-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--accent2);
+}
+
+.unit-card.is-done {
+    border-color: var(--tone-green-border);
+}
+
+.unit-card.is-done .unit-card-bar-fill {
+    background: var(--tone-green-solid);
+}
+
+.unit-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.unit-card-top .ebadge {
+    position: static;
+    flex-shrink: 0;
+}
+
+.unit-card-num {
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.unit-pct-pill {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text2);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 2px 8px;
+    line-height: 1.3;
+}
+
+.unit-done-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--tone-green-fg);
+    background: var(--tone-green-bg);
+    border: 1px solid var(--tone-green-border);
+    border-radius: 999px;
+    padding: 2px 8px;
+    line-height: 1.3;
+}
+
+.unit-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.35;
+}
+
+.unit-card-count {
+    font-size: 12px;
+    color: var(--text3);
+    font-weight: 500;
+}
+
+.unit-card-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 2px;
+}
+
+.unit-preview-chip {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text2);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 2px 7px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.unit-card-bar {
+    height: 4px;
+    background: var(--bg);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.unit-card-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.unit-card-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: auto;
+    padding-top: 6px;
+}
+
+.unit-qbtn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 6px 8px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text2);
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.unit-qbtn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--card);
+}
+
+.unit-grid-empty {
+    grid-column: 1 / -1;
+    background: var(--card);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 28px 20px;
+    text-align: center;
+    color: var(--text2);
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.ebadge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: var(--error-solid);
+    color: var(--on-error);
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 12px;
+    padding: 3px 8px;
+    box-shadow: var(--shadow-sm);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   KÜÇÜK TELEFON  (< 360px) — ek düzeltmeler
+   ────────────────────────────────────────────────────────────── */
+@media (max-width: 359px) {
+    .header-logo {
+        font-size: 16px;
+    }
+
+    .header-btn {
+        padding: 5px 8px;
+        font-size: 12px;
+    }
+
+    .theme-btn {
+        padding: 5px 8px;
+    }
+
+    .mode-card {
+        padding: 14px 10px;
+    }
+
+    .mode-card-icon {
+        font-size: 22px;
+    }
+
+    .mc-q-word {
+        font-size: 22px;
+    }
+
+    .mc-opt {
+        font-size: 14px;
+        padding: 13px 14px;
+    }
+
+    .fib-input {
+        font-size: 14px;
+        padding: 12px;
+    }
+
+    /* HUD daha küçük ── */
+    .gm-hud-inner {
+        padding: 4px 8px 4px 6px;
+        gap: 5px;
+    }
+
+    .gm-xp-bar-wrap {
+        width: 55px;
+    }
+
+    .gm-xp-num {
+        font-size: 11px;
+    }
+
+    .gm-streak-num {
+        font-size: 11px;
+    }
+
+    .gm-level-badge {
+        font-size: 11px;
+        padding: 1px 5px;
+    }
+
+    .gm-streak-icon {
+        font-size: 13px;
+    }
+
+    .gm-xp-burst {
+        font-size: 26px;
+    }
+
+    /* Flash card responsive */
+    .flash-wrap {
+        padding: 10px 12px;
+    }
+
+    .flash-card-wrap {
+        min-height: 180px;
+    }
+
+    .flash-word {
+        font-size: 22px !important;
+    }
+
+    .flash-meaning {
+        font-size: 16px !important;
+    }
+
+    .flash-flip-btn {
+        padding: 8px 16px;
+        font-size: 13px;
+    }
+
+    .swipe-btn-row {
+        flex-wrap: wrap;
+    }
+
+    .swipe-btn {
+        flex: 1;
+        min-width: calc(50% - 6px);
+        padding: 10px 8px;
+        font-size: 13px;
+    }
+
+    /* Search responsive — çok küçük ekranlar */
+    .global-search-input {
+        font-size: 15px;
+        padding: 10px 40px 10px 36px;
+        border-radius: 12px;
+    }
+
+    #global-search-clear {
+        width: 26px !important;
+        height: 26px !important;
+        font-size: 12px !important;
+        right: 6px;
+    }
+
+    .search-result-item {
+        padding: 10px 12px;
+    }
+
+    .search-result-word {
+        font-size: 14px;
+    }
+
+    .search-result-meaning {
+        font-size: 12px;
+    }
+
+    /* Letter nav — çok küçük ekranlar */
+    .letter-nav-btn {
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 11px !important;
+        border-radius: 4px;
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   PRINT
+   ────────────────────────────────────────────────────────────── */
+@media print {
+
+    #gm-hud,
+    .gm-levelup-overlay,
+    .gm-streak-badge-toast,
+    #gm-confetti-layer,
+    #gm-screen-flash,
+    .stats-overlay,
+    .word-modal-overlay,
+    .toast {
+        display: none !important;
+    }
+
+    #app {
+        max-width: 100%;
+        height: auto;
+        overflow: visible;
+        display: block;
+    }
+
+    .screen {
+        display: block !important;
+    }
+}

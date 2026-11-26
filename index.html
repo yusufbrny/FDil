@@ -3,13 +3,12 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>FDil - YDT Kelime Öğrenme s</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>FDil - YDT, YDS &amp; YÖKDİL Kelime ve Koçluk Platformu</title>
   <meta name="description"
-    content="YDT/DİL sınavı için kelime öğrenme uygulaması. Flash kartlar, testler, spaced repetition ve oyunlaştırma ile etkili öğrenme.">
+    content="YDT/DİL sınavı için kelime öğrenme uygulaması. Flash kartlar, testler, spaced repetition ve günlük hedefler ile etkili öğrenme.">
   <meta name="keywords" content="YDT, DİL, kelime, English vocabulary, YKS, sınav, flash kart, öğrenme">
-  <meta name="author" content="yusufbrny">
+  <meta name="author" content="FDil">
   <meta name="robots" content="index, follow">
 
   <!-- PWA Meta -->
@@ -26,14 +25,14 @@
   <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="FDil">
-  <meta property="og:title" content="FDil - YDT Kelime Öğrenme">
+  <meta property="og:title" content="FDil - YDT Kelime Öğrenme Platformu">
   <meta property="og:description"
     content="YDT/DİL sınavı için kelime öğrenme uygulaması. Flash kartlar, testler ve spaced repetition.">
   <meta property="og:locale" content="tr_TR">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="FDil - YDT Kelime Öğrenme">
+  <meta name="twitter:title" content="FDil - YDT Kelime Öğrenme Platformu">
   <meta name="twitter:description" content="YDT/DİL sınavı için kelime öğrenme uygulaması.">
 
   <!-- Favicon -->
@@ -45,13 +44,19 @@
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet">
 
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest.json">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/modes.css">
+  <link rel="stylesheet" href="css/modals-stats.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <link rel="stylesheet" href="css/coach-profile-leaderboard.css">
 </head>
 
 <body>
@@ -59,15 +64,26 @@
     <div id="screen-home" class="screen active">
       <div class="header">
         <div>
-          <div class="header-logo">FDil YDT Kelime Tekrar</div>
-          <div class="header-sub">created by yusufbrny</div>
-          <div class="header-logo">Seni Çok Seviyorum ❤️</div>
+          <div class="header-logo"><span class="logo-mark">FDil</span><span class="logo-sub" id="header-exam-badge">YDT · YDS · YÖKDİL</span></div>
+          <div class="header-sub">Akademik Kelime, Sınav Koçu ve Okuma Platformu</div>
         </div>
         <div class="header-actions">
           <div id="gm-header-bar"></div>
-          <button class="theme-btn" onclick="toggleTheme()" id="theme-toggle-btn" title="Tema değiştir">🌙</button>
-          <button class="header-btn" onclick="showStats()">📊</button>
-          <button class="header-btn" onclick="showSettings()" title="Ayarlar">⚙️</button>
+          <button class="header-profile-btn" id="header-profile-btn" onclick="openProfileOrAuth()" title="Profil &amp; Giriş" aria-label="Profil &amp; Giriş">
+            <span class="hdr-profile-name">Giriş / Profil</span>
+          </button>
+          <button class="header-btn" onclick="showLeaderboard()" title="Liderlik Tablosu" aria-label="Liderlik Tablosu">
+            <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+          </button>
+          <button class="theme-btn" onclick="toggleTheme()" id="theme-toggle-btn" title="Tema değiştir" aria-label="Tema değiştir">
+            <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </button>
+          <button class="header-btn" onclick="showStats()" title="İstatistikler" aria-label="İstatistikler">
+            <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          </button>
+          <button class="header-btn" onclick="showSettings()" title="Ayarlar" aria-label="Ayarlar">
+            <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
         </div>
       </div>
       <div class="global-search-wrap">
@@ -76,72 +92,206 @@
             oninput="onGlobalSearch(this.value)" autocomplete="off" autocorrect="off" autocapitalize="off"
             spellcheck="false" enterkeyhint="search">
           <button onclick="clearGlobalSearch()" id="global-search-clear" style="display:none"
-            aria-label="Aramayı temizle">✕</button>
+            aria-label="Aramayı temizle">
+            <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
       </div>
       <div id="home-normal-content" class="home-content">
         <div id="gm-goal-card" class="gm-goal-card-placeholder"></div>
-        <div id="quest-home-card" class="quest-home-card"></div>
-        <div id="sr-home-card"></div>
-        <div class="filter-row">
-          <span class="section-label">Üniteler</span>
-          <div class="pills">
-            <span class="pill active" onclick="filterUnits('all',this)">Tümü</span>
-            <span class="pill" onclick="filterUnits('incomplete',this)">Eksik</span>
-            <span class="pill" onclick="filterUnits('done',this)">Bitti</span>
-          </div>
+        <div class="home-dashboard-grid">
+          <div id="quest-home-card" class="quest-home-card"></div>
+          <div id="leaderboard-home-card"></div>
+          <div id="sr-home-card"></div>
         </div>
-        <div class="home-grid" id="unit-grid"></div>
-        <div style="height:1px;background:var(--border);margin:8px 0;"></div>
+
+        <!-- Bookshelf View (default before opening a book) -->
+        <section id="bookshelf-section" class="bookshelf-section">
+          <div id="bookshelf-continue-banner"></div>
+          <div class="section-header-row">
+            <span class="section-label">Çalışma Kitapları</span>
+            <span class="section-sub-pill">Kitap Seçin</span>
+          </div>
+          <div class="bookshelf-grid" id="bookshelf-grid"></div>
+        </section>
+
+        <!-- Opened Book Units View (shown after clicking a book cover) -->
+        <section id="book-units-section" class="book-units-section" style="display:none">
+          <div id="active-book-banner" class="active-book-header"></div>
+          <div class="filter-row">
+            <span class="section-label">Üniteler</span>
+            <div class="pills" id="unit-filter-pills">
+              <button type="button" class="pill active" data-filter="all" onclick="filterUnits('all',this)">Tümü</button>
+              <button type="button" class="pill" data-filter="incomplete" onclick="filterUnits('incomplete',this)">Eksik</button>
+              <button type="button" class="pill" data-filter="done" onclick="filterUnits('done',this)">Bitti</button>
+              <button type="button" class="pill" data-filter="error" onclick="filterUnits('error',this)">Hatalı</button>
+            </div>
+          </div>
+          <div class="home-grid" id="unit-grid"></div>
+          <div id="unit-grid-empty" class="unit-grid-empty" style="display:none"></div>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <div class="section-header-row">
+          <span class="section-label">Sözlük &amp; Çeviri</span>
+          <span class="section-sub-pill">Hızlı Çevrimiçi</span>
+        </div>
+        <div class="dict-dual-grid">
+          <button type="button" class="dict-entry-card dict-card-en" onclick="showDictionary('en')">
+            <div class="dict-entry-top">
+              <div class="home-card-icon-box is-green">
+                <svg class="ui-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+              </div>
+              <span class="dict-entry-tag">EN ➔ EN/TR</span>
+            </div>
+            <div class="dict-entry-title">İngilizce Sözlük</div>
+            <div class="dict-entry-sub">Akademik tanım, telaffuz, eş &amp; zıt anlam</div>
+            <div class="dict-feature-chips">
+              <span class="dict-fchip">Telaffuz</span>
+              <span class="dict-fchip">Eş / Zıt</span>
+            </div>
+            <div class="dict-entry-footer">
+              <span id="dict-en-meta">Akademik Havuz</span>
+              <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </div>
+          </button>
+          <button type="button" class="dict-entry-card dict-card-general" onclick="showDictionary('general')">
+            <div class="dict-entry-top">
+              <div class="home-card-icon-box is-teal">
+                <svg class="ui-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              </div>
+              <span class="dict-entry-tag is-teal">TR ⇄ EN</span>
+            </div>
+            <div class="dict-entry-title">Çeviri Aracı</div>
+            <div class="dict-entry-sub">Çift yönlü güvenilir çeviri, olası anlamlar, eş/zıt anlam &amp; deyimler</div>
+            <div class="dict-feature-chips">
+              <span class="dict-fchip is-teal">Çift Yönlü</span>
+              <span class="dict-fchip is-teal">Deyimler</span>
+            </div>
+            <div class="dict-entry-footer">
+              <span id="dict-tr-meta">Anında Arama</span>
+              <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </div>
+          </button>
+        </div>
+
+        <div class="section-header-row" style="margin-top:4px">
+          <span class="section-label">Çalışma Araçları</span>
+          <span class="section-sub-pill">Karma &amp; Tekrar</span>
+        </div>
+
         <div class="mix-card-wrap">
           <div class="home-card mix-card" onclick="toggleMixModes(this)">
-            <div>
-              <div class="home-card-title">🎲 Karışık Soru Modu</div>
-              <div class="home-card-sub">Tüm ünitelerden rastgele — <span id="mix-mode-label">Çoktan Seçmeli</span></div>
+            <div class="home-card-main">
+              <div class="home-card-icon-box is-teal">
+                <svg class="ui-icon" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+              </div>
+              <div>
+                <div class="home-card-title">
+                  <span>Karışık Soru Modu</span>
+                  <span class="home-card-badge is-teal" style="display:inline-block">4 Mod</span>
+                </div>
+                <div class="home-card-sub">Tüm ünitelerden rastgele — <span id="mix-mode-label">Çoktan Seçmeli</span></div>
+              </div>
             </div>
-            <span style="color:#9b59b6;font-size:20px;font-weight:700">▼</span>
+            <span class="mix-mode-caret">
+              <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
           </div>
           <div class="mix-mode-dropdown" id="mix-mode-dropdown" style="display:none">
-            <button class="mix-mode-btn" onclick="startMixMC()">✅ Çoktan Seçmeli</button>
-            <button class="mix-mode-btn" onclick="startMixFlash()">🃏 Flash Kartlar</button>
+            <button type="button" class="mix-mode-btn" onclick="startMixMC()">
+              <svg class="ui-icon mix-btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              <span>Çoktan Seçmeli</span>
+              <span class="mix-mode-meta">40 Soru</span>
+            </button>
+            <button type="button" class="mix-mode-btn" onclick="startMixFlash()">
+              <svg class="ui-icon mix-btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+              <span>Flash Kartlar</span>
+              <span class="mix-mode-meta">30 Kart</span>
+            </button>
+            <button type="button" class="mix-mode-btn" onclick="startMixFIB()">
+              <svg class="ui-icon mix-btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              <span>Boşluk Doldur</span>
+              <span class="mix-mode-meta">20 Cümle</span>
+            </button>
+            <button type="button" class="mix-mode-btn" onclick="startMixSpeed()">
+              <svg class="ui-icon mix-btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3L2 6"/><path d="M22 6l-3-3"/><line x1="10" y1="2" x2="14" y2="2"/></svg>
+              <span>Hız Modu</span>
+              <span class="mix-mode-meta">25 Soru · 10sn</span>
+            </button>
           </div>
         </div>
-        <div class="home-card" onclick="showErrorBox()">
-          <div>
-            <div class="home-card-title">🏦 Hata Kumbarası <span id="error-count-main" class="home-card-badge">0</span>
+
+        <div class="home-tools-grid">
+          <div class="home-card home-card--error" onclick="showErrorBox()">
+            <div class="home-card-main">
+              <div class="home-card-icon-box is-red">
+                <svg class="ui-icon" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+              </div>
+              <div>
+                <div class="home-card-title">
+                  <span>Hata Kumbarası</span>
+                  <span id="error-count-main" class="home-card-badge">0</span>
+                </div>
+                <div class="home-card-sub" id="home-error-sub">Yanlış bildiğin kelimeleri tekrarla</div>
+              </div>
             </div>
-            <div class="home-card-sub">Yanlış bildiğin kelimeleri tekrarla</div>
+            <span class="home-card-arrow">
+              <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </span>
           </div>
-          <span style="color:var(--error);font-size:20px;font-weight:700">→</span>
-        </div>
-        <div class="home-card" onclick="showMyWords()" style="border-color:rgba(52,152,219,0.3)">
-          <div>
-            <div class="home-card-title" style="color:#3498db">📝 Kişisel Kelimelerim <span id="my-words-count-badge"
-                class="home-card-badge" style="background:#3498db;display:none">0</span></div>
-            <div class="home-card-sub">Bilmediğin kelimeleri birden fazla anlamıyla ekle</div>
+          <div class="home-card home-card--blue" onclick="showMyWords()">
+            <div class="home-card-main">
+              <div class="home-card-icon-box is-blue">
+                <svg class="ui-icon" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              </div>
+              <div>
+                <div class="home-card-title">
+                  <span>Kişisel Kelimelerim</span>
+                  <span id="my-words-count-badge" class="home-card-badge is-blue" style="display:none">0</span>
+                </div>
+                <div class="home-card-sub" id="home-mywords-sub">Bilmediğin kelimeleri birden fazla anlamıyla ekle</div>
+              </div>
+            </div>
+            <span class="home-card-arrow">
+              <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </span>
           </div>
-          <span style="color:#3498db;font-size:20px;font-weight:700">→</span>
-        </div>
-        <div class="home-card" onclick="showPhrasalVerbs()" style="border-color:rgba(230,126,34,0.3)">
-          <div>
-            <div class="home-card-title" style="color:#e67e22">🔗 Phrasal Verbs</div>
-            <div class="home-card-sub">Ünitelere göre deyimsel fiiller ve anlamları</div>
+          <div class="home-card home-card--amber" onclick="showPhrasalVerbs()">
+            <div class="home-card-main">
+              <div class="home-card-icon-box is-amber">
+                <svg class="ui-icon" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </div>
+              <div>
+                <div class="home-card-title">
+                  <span>Phrasal Verbs</span>
+                  <span id="pv-count-badge" class="home-card-badge is-amber" style="display:none">0</span>
+                </div>
+                <div class="home-card-sub" id="home-pv-sub">Ünitelere göre deyimsel fiiller ve anlamları</div>
+              </div>
+            </div>
+            <span class="home-card-arrow">
+              <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </span>
           </div>
-          <span style="color:#e67e22;font-size:20px;font-weight:700">→</span>
-        </div>
-        <div class="home-card" onclick="showReading()" style="border-color:rgba(155,89,182,0.3)">
-          <div>
-            <div class="home-card-title" style="color:#9b59b6">📖 Günlük Reading</div>
-            <div class="home-card-sub">Kısa metinlerle kelime öğren</div>
+          <div class="home-card home-card--teal" onclick="showReading()">
+            <div class="home-card-main">
+              <div class="home-card-icon-box is-teal">
+                <svg class="ui-icon" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              </div>
+              <div>
+                <div class="home-card-title">
+                  <span>Günlük Reading</span>
+                  <span id="reading-count-badge" class="home-card-badge is-teal" style="display:none">0</span>
+                </div>
+                <div class="home-card-sub" id="home-reading-sub">Kısa metinlerle kelime öğren</div>
+              </div>
+            </div>
+            <span class="home-card-arrow">
+              <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </span>
           </div>
-          <span style="color:#9b59b6;font-size:20px;font-weight:700">→</span>
-        </div>
-        <div class="home-card" onclick="showDictionary()" style="border-color:rgba(46,204,113,0.3)">
-          <div>
-            <div class="home-card-title" style="color:#2ecc71">📖 İngilizce Sözlük</div>
-            <div class="home-card-sub">Eş anlam, zıt anlam ve açıklama</div>
-          </div>
-          <span style="color:#2ecc71;font-size:20px;font-weight:700">→</span>
         </div>
       </div>
       <div id="home-search-content" style="display:none; flex:1; flex-direction:column; overflow:hidden;">
@@ -151,7 +301,9 @@
 
     <div id="screen-unit" class="screen">
       <div class="unit-header">
-        <button class="back-btn" onclick="goHome()" aria-label="Geri">←</button>
+        <button class="back-btn" onclick="goHome()" aria-label="Geri">
+          <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        </button>
         <div>
           <div class="unit-title-h" id="unit-screen-title">Ünite 1</div>
           <div class="unit-sub" id="unit-screen-sub">75 kelime</div>
@@ -166,43 +318,135 @@
             </div>
             <span class="progress-txt" style="color:var(--accent)" id="unit-progress-txt">0%</span>
           </div>
+          <div class="unit-stats-pills" id="unit-stats-pills"></div>
+          <div class="unit-study-filter" id="unit-study-filter"></div>
         </div>
         <div class="mode-grid">
-          <div class="mode-card highlight" onclick="startLearn()" style="grid-column: span 2;">
-            <div class="mode-card-icon">📖</div>
-            <div class="mode-card-title">Sözlük & Öğrenme</div>
-            <div class="mode-card-desc">Eş/Zıt anlamlılar, kelime ailesi ve örnekler</div>
+          <div class="mode-card highlight mode-card--green" onclick="startLearn()">
+            <div class="mode-card-top">
+              <div class="mode-card-icon">
+                <svg class="ui-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+              </div>
+              <span class="mode-xp-pill">+5 XP / kelime</span>
+            </div>
+            <div class="mode-card-body">
+              <div class="mode-card-title">Sözlük &amp; Öğrenme</div>
+              <div class="mode-card-desc">Eş/zıt anlamlılar, kelime ailesi, hızlı durum işaretleme ve örnek cümleler</div>
+            </div>
+            <div class="mode-card-footer">
+              <span class="mode-meta-pill" id="mode-meta-learn">Kelime Listesi</span>
+              <span class="mode-go-arrow" aria-hidden="true">
+                <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </span>
+            </div>
           </div>
-          <div class="mode-card" onclick="startFlash()">
-            <div class="mode-card-icon">🃏</div>
-            <div class="mode-card-title">Flash Kartlar</div>
-            <div class="mode-card-desc">Sağa kaydır = bildim</div>
+          <div class="mode-card mode-card--teal mode-card--wide-mobile" onclick="startFlash()">
+            <div class="mode-card-top">
+              <div class="mode-card-icon">
+                <svg class="ui-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+              </div>
+              <span class="mode-xp-pill">+8 XP</span>
+            </div>
+            <div class="mode-card-body">
+              <div class="mode-card-title">Flash Kartlar</div>
+              <div class="mode-card-desc">3D çevir, sağa/sola kaydır, geri al</div>
+            </div>
+            <div class="mode-card-footer">
+              <span class="mode-meta-pill" id="mode-meta-flash">Kartlar</span>
+              <span class="mode-go-arrow" aria-hidden="true">
+                <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </span>
+            </div>
           </div>
-          <div class="mode-card" onclick="startMC()">
-            <div class="mode-card-icon">✅</div>
-            <div class="mode-card-title">Çoktan Seçmeli</div>
-            <div class="mode-card-desc">4 seçenekten doğruyu bul</div>
+          <div class="mode-card mode-card--blue" onclick="startMC()">
+            <div class="mode-card-top">
+              <div class="mode-card-icon">
+                <svg class="ui-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              </div>
+              <span class="mode-xp-pill">+10 XP</span>
+            </div>
+            <div class="mode-card-body">
+              <div class="mode-card-title">Çoktan Seçmeli</div>
+              <div class="mode-card-desc">EN⇄TR 4 seçenekli test</div>
+            </div>
+            <div class="mode-card-footer">
+              <span class="mode-meta-pill" id="mode-meta-mc">4 Seçenek</span>
+              <span class="mode-go-arrow" aria-hidden="true">
+                <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </span>
+            </div>
           </div>
-          <div class="mode-card" onclick="startFIB('type')">
-            <div class="mode-card-icon">✏️</div>
-            <div class="mode-card-title">Boşluk Doldur</div>
-            <div class="mode-card-desc">Örnek cümleyi tamamla</div>
+          <div class="mode-card mode-card--amber" onclick="startFIB('type')">
+            <div class="mode-card-top">
+              <div class="mode-card-icon">
+                <svg class="ui-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              </div>
+              <span class="mode-xp-pill">+15 XP</span>
+            </div>
+            <div class="mode-card-body">
+              <div class="mode-card-title">Boşluk Doldur</div>
+              <div class="mode-card-desc">Yazarak veya kelime seçerek</div>
+            </div>
+            <div class="mode-card-footer">
+              <span class="mode-meta-pill" id="mode-meta-fib">Cümle Tamamla</span>
+              <span class="mode-go-arrow" aria-hidden="true">
+                <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </span>
+            </div>
           </div>
-          <div class="mode-card" onclick="startSynQuiz()">
-            <div class="mode-card-icon">🔁</div>
-            <div class="mode-card-title">Eş Anlam Quiz</div>
-            <div class="mode-card-desc">Eş anlamlı kelimeyi seç</div>
+          <div class="mode-card mode-card--green" onclick="startSynQuiz()">
+            <div class="mode-card-top">
+              <div class="mode-card-icon">
+                <svg class="ui-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+              </div>
+              <span class="mode-xp-pill">+10 XP</span>
+            </div>
+            <div class="mode-card-body">
+              <div class="mode-card-title">Eş Anlam Quiz</div>
+              <div class="mode-card-desc">Eş anlamlı kelimeyi seç</div>
+            </div>
+            <div class="mode-card-footer">
+              <span class="mode-meta-pill" id="mode-meta-syn">Synonym</span>
+              <span class="mode-go-arrow" aria-hidden="true">
+                <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </span>
+            </div>
           </div>
-          <div class="mode-card" onclick="startAntQuiz()">
-            <div class="mode-card-icon">⚡</div>
-            <div class="mode-card-title">Zıt Anlam Quiz</div>
-            <div class="mode-card-desc">Zıt anlamlı kelimeyi seç</div>
+          <div class="mode-card mode-card--red" onclick="startAntQuiz()">
+            <div class="mode-card-top">
+              <div class="mode-card-icon">
+                <svg class="ui-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              </div>
+              <span class="mode-xp-pill">+10 XP</span>
+            </div>
+            <div class="mode-card-body">
+              <div class="mode-card-title">Zıt Anlam Quiz</div>
+              <div class="mode-card-desc">Zıt anlamlı kelimeyi seç</div>
+            </div>
+            <div class="mode-card-footer">
+              <span class="mode-meta-pill" id="mode-meta-ant">Antonym</span>
+              <span class="mode-go-arrow" aria-hidden="true">
+                <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </span>
+            </div>
           </div>
-          <div class="mode-card speed-mode-card" onclick="startSpeedMode()"
-            style="grid-column: span 2; border-color: rgba(231,76,60,0.4); background: linear-gradient(135deg, rgba(231,76,60,0.06), rgba(243,156,18,0.06));">
-            <div class="mode-card-icon">⏱️</div>
-            <div class="mode-card-title" style="color:#e74c3c">Hız Modu</div>
-            <div class="mode-card-desc">Geri sayım! Hızlı cevap = Bonus XP</div>
+          <div class="mode-card speed-mode-card" onclick="startSpeedMode()">
+            <div class="mode-card-top">
+              <div class="mode-card-icon">
+                <svg class="ui-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3L2 6"/><path d="M22 6l-3-3"/><line x1="10" y1="2" x2="14" y2="2"/></svg>
+              </div>
+              <span class="mode-xp-pill">+20 Bonus XP</span>
+            </div>
+            <div class="mode-card-body">
+              <div class="mode-card-title">Hız Modu</div>
+              <div class="mode-card-desc">10 saniyede cevapla! 5+ saniye kalırsa seri ve bonus XP kazan</div>
+            </div>
+            <div class="mode-card-footer">
+              <span class="mode-meta-pill" id="mode-meta-speed">Zamana Karşı Arena</span>
+              <span class="mode-go-arrow" aria-hidden="true">
+                <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -222,9 +466,11 @@
     <div id="screen-phrasal-flash" class="screen"></div>
     <div id="screen-phrasal-quiz" class="screen"></div>
     <div id="screen-speed" class="screen"></div>
-    <div id="screen-general" class="screen"></div>
     <div id="screen-dict" class="screen"></div>
     <div id="screen-reading" class="screen"></div>
+    <div id="screen-coach" class="screen"></div>
+    <div id="screen-leaderboard" class="screen"></div>
+    <div id="screen-profile" class="screen"></div>
 
   </div><!-- /app -->
 
@@ -247,8 +493,14 @@
     <div class="stats-panel" id="stats-panel">
       <div class="stats-handle"></div>
       <div class="stats-header">
-        <div class="stats-title">📊 Öğrenme İstatistikleri</div>
-        <button class="stats-close" onclick="closeStats()">Kapat ✕</button>
+        <div class="stats-title icon-inline">
+          <svg class="ui-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          <span>Öğrenme İstatistikleri</span>
+        </div>
+        <button class="stats-close icon-inline" onclick="closeStats()" aria-label="Kapat">
+          <span>Kapat</span>
+          <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
       <div id="stats-content"></div>
     </div>
@@ -256,10 +508,34 @@
 
   <div class="toast" id="toast"></div>
 
-  <!-- data.js önce yüklenmeli (UNITS, RAW_META, PHRASAL_VERBS) -->
-  <script src="data.js"></script>
-  <!-- app.js sonra (tüm fonksiyonlar + gamification kodu içinde gömülü) -->
-  <script src="app.js"></script>
+  <!-- Data layer -->
+  <script src="js/data/units.js"></script>
+  <script src="js/data/meta.js"></script>
+  <script src="js/data/phrasal-verbs.js"></script>
+  <script src="js/data/reading-passages.js"></script>
+
+  <!-- Core layer -->
+  <script src="js/core/icons.js"></script>
+  <script src="js/core/storage.js"></script>
+  <script src="js/core/utils.js"></script>
+
+  <!-- Feature modules -->
+  <script src="js/modules/gamification.js"></script>
+  <script src="js/modules/spaced-repetition.js"></script>
+  <script src="js/modules/flashcard.js"></script>
+  <script src="js/modules/quizzes.js"></script>
+  <script src="js/modules/learn-modal.js"></script>
+  <script src="js/modules/my-words.js"></script>
+  <script src="js/modules/phrasal-verbs.js"></script>
+  <script src="js/modules/search-dict.js"></script>
+  <script src="js/modules/reading.js"></script>
+  <script src="js/modules/stats-settings.js"></script>
+  <script src="js/modules/mascot.js"></script>
+  <script src="js/modules/exam-coach.js"></script>
+  <script src="js/modules/auth-profile-leaderboard.js"></script>
+
+  <!-- Bootstrap -->
+  <script src="js/app.js"></script>
 
   <!-- Service Worker Registration -->
   <script>
