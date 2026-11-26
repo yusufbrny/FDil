@@ -50,13 +50,13 @@
   <link rel="manifest" href="manifest.json">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="css/variables.css">
-  <link rel="stylesheet" href="css/animations.css">
-  <link rel="stylesheet" href="css/layout.css">
-  <link rel="stylesheet" href="css/modes.css">
-  <link rel="stylesheet" href="css/modals-stats.css">
-  <link rel="stylesheet" href="css/responsive.css">
-  <link rel="stylesheet" href="css/coach-profile-leaderboard.css">
+  <link rel="stylesheet" href="css/variables.css?v=12">
+  <link rel="stylesheet" href="css/animations.css?v=12">
+  <link rel="stylesheet" href="css/layout.css?v=12">
+  <link rel="stylesheet" href="css/modes.css?v=12">
+  <link rel="stylesheet" href="css/modals-stats.css?v=12">
+  <link rel="stylesheet" href="css/responsive.css?v=12">
+  <link rel="stylesheet" href="css/coach-profile-leaderboard.css?v=12">
 </head>
 
 <body>
@@ -515,43 +515,51 @@
   <div class="toast" id="toast"></div>
 
   <!-- Data layer -->
-  <script src="js/data/units.js"></script>
-  <script src="js/data/meta.js"></script>
-  <script src="js/data/phrasal-verbs.js"></script>
-  <script src="js/data/reading-passages.js"></script>
-  <script src="js/data/weekly-words.js"></script>
+  <script src="js/data/units.js?v=12"></script>
+  <script src="js/data/meta.js?v=12"></script>
+  <script src="js/data/phrasal-verbs.js?v=12"></script>
+  <script src="js/data/reading-passages.js?v=12"></script>
+  <script src="js/data/weekly-words.js?v=12"></script>
 
   <!-- Core layer -->
-  <script src="js/core/icons.js"></script>
-  <script src="js/core/storage.js"></script>
-  <script src="js/core/utils.js"></script>
+  <script src="js/core/icons.js?v=12"></script>
+  <script src="js/core/storage.js?v=12"></script>
+  <script src="js/core/utils.js?v=12"></script>
 
   <!-- Feature modules -->
-  <script src="js/modules/gamification.js"></script>
-  <script src="js/modules/spaced-repetition.js"></script>
-  <script src="js/modules/flashcard.js"></script>
-  <script src="js/modules/quizzes.js"></script>
-  <script src="js/modules/learn-modal.js"></script>
-  <script src="js/modules/my-words.js"></script>
-  <script src="js/modules/phrasal-verbs.js"></script>
-  <script src="js/modules/search-dict.js"></script>
-  <script src="js/modules/reading.js"></script>
-  <script src="js/modules/weekly-vocab.js"></script>
-  <script src="js/modules/stats-settings.js"></script>
-  <script src="js/modules/mascot.js"></script>
-  <script src="js/modules/exam-coach.js"></script>
-  <script src="js/modules/auth-profile-leaderboard.js"></script>
+  <script src="js/modules/gamification.js?v=12"></script>
+  <script src="js/modules/spaced-repetition.js?v=12"></script>
+  <script src="js/modules/flashcard.js?v=12"></script>
+  <script src="js/modules/quizzes.js?v=12"></script>
+  <script src="js/modules/learn-modal.js?v=12"></script>
+  <script src="js/modules/my-words.js?v=12"></script>
+  <script src="js/modules/phrasal-verbs.js?v=12"></script>
+  <script src="js/modules/search-dict.js?v=12"></script>
+  <script src="js/modules/reading.js?v=12"></script>
+  <script src="js/modules/weekly-vocab.js?v=12"></script>
+  <script src="js/modules/stats-settings.js?v=12"></script>
+  <script src="js/modules/mascot.js?v=12"></script>
+  <script src="js/modules/exam-coach.js?v=12"></script>
+  <script src="js/modules/auth-profile-leaderboard.js?v=12"></script>
 
   <!-- Bootstrap -->
-  <script src="js/app.js"></script>
+  <script src="js/app.js?v=12"></script>
 
   <!-- Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {
+      var hadController = !!navigator.serviceWorker.controller;
+      var swRefreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (hadController && !swRefreshing) {
+          swRefreshing = true;
+          window.location.reload();
+        }
+      });
       window.addEventListener('load', function () {
         navigator.serviceWorker.register('sw.js')
           .then(function (registration) {
-            console.log('SW registered:', registration.scope);
+            registration.update();
           })
           .catch(function (error) {
             console.log('SW registration failed:', error);

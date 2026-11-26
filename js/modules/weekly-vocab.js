@@ -357,14 +357,14 @@ function renderWeeklyVocab() {
     <div class="wk-scroll">
       <div class="wk-week-tabs" role="tablist" aria-label="Hafta seçimi">
         ${weeks.map(w => {
-          const wst = getWeekStats(w.id);
-          const active = w.id === week.id;
-          return `
+    const wst = getWeekStats(w.id);
+    const active = w.id === week.id;
+    return `
             <button type="button" class="wk-week-tab ${active ? 'active' : ''}" onclick="selectWeeklyWeek('${escQ(w.id)}')">
               <span class="wk-tab-title">${esc(w.title)}</span>
               <span class="wk-tab-meta">${wst.learned}/${wst.uniqueTotal}</span>
             </button>`;
-        }).join('')}
+  }).join('')}
       </div>
 
       <div class="wk-overview-card">
@@ -467,9 +467,9 @@ function renderHomeWeeklySection() {
     </div>
     <div class="wk-home-grid count-${Math.min(weeks.length, 3)}">
       ${weeks.map((w, idx) => {
-        const st = getWeekStats(w.id);
-        const listSummary = (w.sets || []).map(s => `${s.label} (${s.words.length})`).join(' · ');
-        return `
+    const st = getWeekStats(w.id);
+    const listSummary = (w.sets || []).map(s => `${s.label} (${s.words.length})`).join(' · ');
+    return `
           <div class="wk-home-card" onclick="showWeeklyVocab('${escQ(w.id)}')">
             <div class="wk-home-card-top">
               <div>
@@ -490,7 +490,7 @@ function renderHomeWeeklySection() {
               <button type="button" class="wk-home-act" onclick="startWeeklyQuickFromHome('${escQ(w.id)}','speed')">${icon('timer', 13)} Hız</button>
             </div>
           </div>`;
-      }).join('')}
+  }).join('')}
     </div>
   `;
 }
