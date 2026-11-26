@@ -5,6 +5,12 @@ let _mcWrongWords = [];
 let _mcPoolOrigin = null;
 let _mcBackFn = null;
 let _mcTitle = null;
+let _mcUnitContext = null;
+let _mcCurrentQ = null;
+let _fibCurrentOpts = [];
+let _synCurrentQ = null;
+let _antCurrentQ = null;
+let _speedCurrentQ = null;
 let _quizNextTimer = null;
 let _quizKeyBound = false;
 
@@ -12,6 +18,86 @@ function _clearQuizTimer() {
   if (_quizNextTimer) {
     clearTimeout(_quizNextTimer);
     _quizNextTimer = null;
+  }
+}
+
+function _normQuizText(str) {
+  return String(str || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function _getAllGlobalWords() {
+  const all = [];
+  if (typeof UNITS !== 'undefined') {
+    Object.values(UNITS).forEach(u => {
+      if (u && Array.isArray(u.words)) all.push(...u.words);
+    });
+  }
+  if (typeof getAllWeeklyWordsFlat === 'function') {
+    all.push(...getAllWeeklyWordsFlat());
+  }
+  return all;
+}
+
+function _getDistractorSource(unit, poolOrigin) {
+  if (Array.isArray(poolOrigin) && poolOrigin.length >= 4) return poolOrigin;
+  const base = unit && UNITS[unit] && UNITS[unit].words ? UNITS[unit].words : [];
+  if (base.length >= 4) return base;
+  return _getAllGlobalWords();
+}
+
+function _pickDistinctDistractors(targetWord, sourceWords, count = 3) {
+  const targetEn = _normQuizText(targetWord && targetWord[0]);
+  const targetTr = _normQuizText(targetWord && targetWord[1]);
+  const seenEn = new Set([targetEn]);
+  const seenTr = new Set([targetTr]);
+  const picked = [];
+
+  const tryFromPool = (pool) => {
+    if (!Array.isArray(pool) || picked.length >= count) return;
+    const shuffled = shuffle(pool);
+    for (const w of shuffled) {
+      if (picked.length >= count) break;
+      if (!w || !w[0] || !w[1]) continue;
+      const en = _normQuizText(w[0]);
+      const tr = _normQuizText(w[1]);
+      if (!en || !tr || seenEn.has(en) || seenTr.has(tr)) continue;
+      seenEn.add(en);
+      seenTr.add(tr);
+      picked.push(w);
+    }
+  };
+
+  tryFromPool(sourceWords);
+  if (picked.length < count) {
+    tryFromPool(_getAllGlobalWords());
+  }
+  return picked;
+}
+
+function _runBackHandler(expr, fallbackUnit) {
+  _clearQuizTimer();
+  if (typeof _clearSpeedTimer === 'function') _clearSpeedTimer();
+  const target = expr || (fallbackUnit && UNITS[fallbackUnit] ? `openUnit(${fallbackUnit})` : 'goHome()');
+  try {
+    if (typeof target === 'function') {
+      target();
+    } else if (typeof target === 'string' && target.trim()) {
+      (new Function(target))();
+    } else {
+      goHome();
+    }
+  } catch (e) {
+    goHome();
+  }
+}
+
+function _runMCBack() {
+  _runBackHandler(_mcBackFn, _mcUnitContext || currentUnit);
+}
+
+function _speakCurrentMCWord() {
+  if (_mcCurrentQ && _mcCurrentQ.word && _mcCurrentQ.word[0] && typeof speakWord === 'function') {
+    speakWord(_mcCurrentQ.word[0]);
   }
 }
 
@@ -52,13 +138,6 @@ function _bindQuizKeys() {
   });
 }
 
-function _getDistractorSource(unit, poolOrigin) {
-  const base = UNITS[unit] && UNITS[unit].words ? UNITS[unit].words : [];
-  if (base.length >= 4) return base;
-  if (Array.isArray(poolOrigin) && poolOrigin.length >= 4) return poolOrigin;
-  return Object.values(UNITS).flatMap(u => u.words);
-}
-
 function _maskSentenceWord(sentence, targetWord) {
   if (!sentence || !targetWord) return '';
   const escaped = targetWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -83,29 +162,37 @@ function startMC(pool, backFn, title) {
   _clearQuizTimer();
   _bindQuizKeys();
   let chosenPool = pool;
+  let fromUnit = null;
   if (!chosenPool) {
+    fromUnit = currentUnit;
     if (typeof getUnitStudyPool === 'function') {
       chosenPool = shuffle(getUnitStudyPool(currentUnit));
       if (chosenPool.length === 0 && UNITS[currentUnit] && UNITS[currentUnit].words.length > 0) {
         showToast('Tüm kelimeleri zaten öğrendin! Tüm ünite yükleniyor.');
         chosenPool = shuffle(UNITS[currentUnit].words);
       }
-    } else {
+    } else if (UNITS[currentUnit] && UNITS[currentUnit].words) {
       chosenPool = shuffle(UNITS[currentUnit].words);
     }
   }
-  if (!chosenPool || chosenPool.length === 0) { showToast('Test için kelime bulunamadı!'); return; }
-  currentCards = chosenPool;
-  _mcPoolOrigin = [...chosenPool];
-  _mcBackFn = backFn || null;
+  const sanitized = Array.isArray(chosenPool)
+    ? chosenPool.filter(w => Array.isArray(w) && w[0] && w[1])
+    : [];
+  if (sanitized.length === 0) { showToast('Test için kelime bulunamadı!'); return; }
+
+  currentCards = sanitized;
+  _mcPoolOrigin = [...sanitized];
+  _mcBackFn = backFn || (fromUnit ? `openUnit(${fromUnit})` : null);
   _mcTitle = title || null;
+  _mcUnitContext = fromUnit;
+  _mcCurrentQ = null;
   cardIndex = 0;
   mcScore = 0;
   _mcWrong = 0;
   _mcWrongWords = [];
   mcTotal = currentCards.length;
-  renderMC(backFn, title);
   showScreen('screen-mc');
+  renderMC(_mcBackFn, _mcTitle);
 }
 
 function renderMC(backFn, titleOverride) {
@@ -113,25 +200,48 @@ function renderMC(backFn, titleOverride) {
   _bindQuizKeys();
   const s = document.getElementById('screen-mc');
   if (!s) return;
-  if (cardIndex >= currentCards.length) { renderMCResult(backFn, titleOverride); return; }
+  if (backFn !== undefined && backFn !== null && backFn !== '') _mcBackFn = backFn;
+  if (titleOverride !== undefined && titleOverride !== null && titleOverride !== '') _mcTitle = titleOverride;
+
+  while (cardIndex < currentCards.length && (!currentCards[cardIndex] || !currentCards[cardIndex][0] || !currentCards[cardIndex][1])) {
+    cardIndex++;
+  }
+  if (!currentCards || cardIndex >= currentCards.length) {
+    renderMCResult(_mcBackFn, _mcTitle);
+    return;
+  }
 
   const word = currentCards[cardIndex];
-  const unit = word._unit || currentUnit || 1;
+  const unit = word._unit || (_mcUnitContext && UNITS[_mcUnitContext] ? _mcUnitContext : null);
+  const weekId = word._weekId || null;
   const sourceWords = _getDistractorSource(unit, _mcPoolOrigin);
-  const wrong = shuffle(sourceWords.filter(w => w[0] !== word[0])).slice(0, 3);
+  const wrong = _pickDistinctDistractors(word, sourceWords, 3);
   const opts = shuffle([word, ...wrong]);
-  const pct = Math.round((cardIndex / mcTotal) * 100);
-  const backHandler = backFn || _mcBackFn || `openUnit(${currentUnit || 1})`;
-  const title = titleOverride || _mcTitle || 'Çoktan Seçmeli';
+  const correctIdx = opts.findIndex(o => _normQuizText(o[0]) === _normQuizText(word[0]));
+  const pct = mcTotal > 0 ? Math.round((cardIndex / mcTotal) * 100) : 0;
+  const title = _mcTitle || 'Çoktan Seçmeli';
 
   const useEnToTr = _mcDirection === 'en-tr' || (_mcDirection === 'mix' && cardIndex % 2 === 0);
   const comboVal = typeof _comboCount !== 'undefined' ? _comboCount : 0;
   const keys = ['A', 'B', 'C', 'D'];
+  const subLabel = weekId
+    ? (word._weekLabel || 'Haftalık Kelime')
+    : (unit && UNITS[unit] ? 'Ünite ' + unit : 'Özel Liste');
+
+  _mcCurrentQ = {
+    word,
+    opts,
+    correctIdx,
+    unit,
+    weekId,
+    useEnToTr,
+    answered: false
+  };
 
   s.innerHTML = `
   <div class="unit-header">
-    <button class="back-btn" onclick="_clearQuizTimer();${backHandler}" aria-label="Geri">${icon('arrowLeft', 18)}</button>
-    <div><div class="unit-title-h">${title}</div><div class="unit-sub">${UNITS[unit] ? 'Ünite ' + unit : 'Özel Liste'} · ${cardIndex + 1}/${mcTotal}</div></div>
+    <button type="button" class="back-btn" onclick="_runMCBack()" aria-label="Geri">${icon('arrowLeft', 18)}</button>
+    <div><div class="unit-title-h">${esc(title)}</div><div class="unit-sub">${esc(subLabel)} · ${cardIndex + 1}/${mcTotal}</div></div>
   </div>
   <div class="mc-wrap">
     <div class="quiz-status-bar">
@@ -151,14 +261,14 @@ function renderMC(backFn, titleOverride) {
       <div class="mc-q-label">${useEnToTr ? 'Aşağıdaki Kelimenin Anlamı Nedir?' : 'Bu Anlama Karşılık Gelen Kelime Hangisi?'}</div>
       <div class="mc-q-word-row">
         <div class="mc-q-word ${useEnToTr ? '' : 'is-tr'}">${esc(useEnToTr ? word[0] : word[1])}</div>
-        ${useEnToTr ? `<button type="button" class="pronounce-btn" onclick="speakWord('${escQ(word[0])}')" title="Telaffuz dinle" aria-label="Telaffuz dinle">${icon('volume', 17)}</button>` : ''}
+        ${useEnToTr ? `<button type="button" class="pronounce-btn" onclick="_speakCurrentMCWord()" title="Telaffuz dinle" aria-label="Telaffuz dinle">${icon('volume', 17)}</button>` : ''}
       </div>
       ${word[2] ? `<div class="mc-q-example" id="mc-q-example">${_maskSentenceWord(word[2], word[0])}</div>` : ''}
     </div>
     <div class="mc-options" id="mc-options">
       ${opts.map((o, idx) => `
-        <button type="button" class="mc-opt" data-word="${escQ(o[0])}" onclick="checkMC(this,'${escQ(o[0])}','${escQ(word[0])}','${escQ(word[1])}','${escQ(backFn || '')}','${escQ(titleOverride || '')}')">
-          <span class="mc-opt-key">${keys[idx]}</span>
+        <button type="button" class="mc-opt" data-idx="${idx}" onclick="checkMC(this,${idx})">
+          <span class="mc-opt-key">${keys[idx] || (idx + 1)}</span>
           <span class="mc-opt-text">${esc(useEnToTr ? o[1] : o[0])}</span>
           <span class="mc-opt-status"></span>
         </button>`).join('')}
@@ -166,13 +276,19 @@ function renderMC(backFn, titleOverride) {
   </div>`;
 }
 
-function checkMC(btn, chosen, correct, meaning, backFn, titleOverride) {
+function checkMC(btn, chosenIdx) {
   const optsWrap = document.getElementById('mc-options');
-  if (!optsWrap || optsWrap.dataset.answered === '1') return;
+  const q = _mcCurrentQ;
+  if (!optsWrap || !q || q.answered || optsWrap.dataset.answered === '1') return;
+  q.answered = true;
   optsWrap.dataset.answered = '1';
 
-  const word = currentCards[cardIndex];
-  const unit = word._unit || currentUnit;
+  const word = q.word;
+  const chosenWord = q.opts[chosenIdx];
+  const isCorrect = chosenIdx === q.correctIdx ||
+    (chosenWord && _normQuizText(chosenWord[0]) === _normQuizText(word[0])) ||
+    (chosenWord && _normQuizText(chosenWord[1]) === _normQuizText(word[1]));
+
   const exEl = document.getElementById('mc-q-example');
   if (exEl && word && word[2]) {
     exEl.innerHTML = typeof highlightTargetWord === 'function' ? highlightTargetWord(word[2], word[0]) : esc(word[2]);
@@ -181,7 +297,11 @@ function checkMC(btn, chosen, correct, meaning, backFn, titleOverride) {
   optsWrap.querySelectorAll('.mc-opt').forEach(b => b.classList.add('disabled'));
   const statusEl = btn.querySelector('.mc-opt-status');
 
-  if (chosen === correct) {
+  const unit = q.unit;
+  const weekId = q.weekId;
+  const errKey = weekId ? ('w_' + weekId + '_' + word[0]) : (unit ? ('u' + unit + '_' + word[0]) : null);
+
+  if (isCorrect) {
     const nextCombo = (typeof _comboCount !== 'undefined' ? _comboCount : 0) + 1;
     if (typeof playGameSFX === 'function') playGameSFX('correct', nextCombo);
     if (typeof _triggerCorrect === 'function') _triggerCorrect(btn, 'mc_correct');
@@ -189,44 +309,66 @@ function checkMC(btn, chosen, correct, meaning, backFn, titleOverride) {
     btn.classList.add('correct');
     if (statusEl) statusEl.innerHTML = icon('check', 16);
     mcScore++;
-    if (UNITS[unit]) markLearned(unit, correct);
-    delete errorBox['u' + unit + '_' + correct];
-    saveErrors();
-    _quizNextTimer = setTimeout(() => { cardIndex++; renderMC(backFn || null, titleOverride || null); }, 950);
+    if (weekId && typeof markWeeklyWordLearned === 'function') {
+      markWeeklyWordLearned(weekId, word[0], true, true);
+    } else if (unit && UNITS[unit]) {
+      markLearned(unit, word[0]);
+    }
+    if (errKey && errorBox[errKey]) {
+      delete errorBox[errKey];
+      saveErrors();
+    }
+    _quizNextTimer = setTimeout(() => {
+      const scr = document.getElementById('screen-mc');
+      if (!scr || !scr.classList.contains('active')) return;
+      cardIndex++;
+      renderMC();
+    }, 900);
   } else {
     if (typeof playGameSFX === 'function') playGameSFX('wrong');
     if (typeof _triggerWrong === 'function') _triggerWrong(btn);
     btn.classList.add('wrong');
     if (statusEl) statusEl.innerHTML = icon('x', 16);
     _mcWrong++;
-    if (word && !_mcWrongWords.some(w => w[0] === word[0])) _mcWrongWords.push(word);
-    optsWrap.querySelectorAll('.mc-opt').forEach(b => {
-      if (b.dataset.word === correct) {
-        b.classList.add('correct');
-        const st = b.querySelector('.mc-opt-status');
-        if (st) st.innerHTML = icon('check', 16);
-      }
-    });
-    if (UNITS[unit]) markUnlearned(unit, correct);
-    errorBox['u' + unit + '_' + correct] = { word: correct, meaning, unit };
-    saveErrors();
-    _quizNextTimer = setTimeout(() => { cardIndex++; renderMC(backFn || null, titleOverride || null); }, 1500);
+    if (word && !_mcWrongWords.some(w => _normQuizText(w[0]) === _normQuizText(word[0]))) _mcWrongWords.push(word);
+    const correctBtn = optsWrap.querySelector(`.mc-opt[data-idx="${q.correctIdx}"]`);
+    if (correctBtn) {
+      correctBtn.classList.add('correct');
+      const st = correctBtn.querySelector('.mc-opt-status');
+      if (st) st.innerHTML = icon('check', 16);
+    }
+    if (weekId && typeof markWeeklyWordLearned === 'function') {
+      markWeeklyWordLearned(weekId, word[0], false, true);
+    } else if (unit && UNITS[unit]) {
+      markUnlearned(unit, word[0]);
+    }
+    if (errKey) {
+      errorBox[errKey] = { word: word[0], meaning: word[1], unit: unit || (word._weekLabel || 'Haftalık'), weekId: weekId || undefined };
+      saveErrors();
+    }
+    _quizNextTimer = setTimeout(() => {
+      const scr = document.getElementById('screen-mc');
+      if (!scr || !scr.classList.contains('active')) return;
+      cardIndex++;
+      renderMC();
+    }, 1450);
   }
 }
 
 function renderMCResult(backFn, titleOverride) {
   _clearQuizTimer();
-  const u = currentUnit || 1;
   const pct = mcTotal > 0 ? Math.round((mcScore / mcTotal) * 100) : 0;
   const s = document.getElementById('screen-mc');
-  const backHandler = backFn || _mcBackFn || `openUnit(${u})`;
+  if (!s) return;
+  if (backFn) _mcBackFn = backFn;
+  if (titleOverride) _mcTitle = titleOverride;
   if (pct >= 70 && typeof playGameSFX === 'function') playGameSFX('win');
 
   window._retryMCWrong = function () {
-    startMC(shuffle(_mcWrongWords), backHandler, titleOverride || _mcTitle);
+    startMC(shuffle(_mcWrongWords), _mcBackFn, _mcTitle);
   };
   window._restartMCAll = function () {
-    startMC(_mcPoolOrigin ? shuffle(_mcPoolOrigin) : null, backHandler, titleOverride || _mcTitle);
+    startMC(_mcPoolOrigin ? shuffle(_mcPoolOrigin) : null, _mcBackFn, _mcTitle);
   };
 
   s.innerHTML = `
@@ -240,7 +382,7 @@ function renderMCResult(backFn, titleOverride) {
     </div>
     ${_mcWrongWords.length > 0 ? `<button type="button" class="result-btn" onclick="window._retryMCWrong()">${icon('repeat', 16)} Yanlışları Tekrar Çöz (${_mcWrongWords.length})</button>` : ''}
     <button type="button" class="result-btn ${_mcWrongWords.length > 0 ? 'outline' : ''}" onclick="window._restartMCAll()">${icon('shuffle', 16)} Yeniden Başla</button>
-    <button type="button" class="result-btn outline" onclick="${backHandler}">${icon('arrowLeft', 16)} Geri Dön</button>
+    <button type="button" class="result-btn outline" onclick="_runMCBack()">${icon('arrowLeft', 16)} Geri Dön</button>
   </div>`;
 }
 
@@ -875,26 +1017,30 @@ function _renderSpeedQ() {
     _renderSpeedQ();
     return;
   }
-  const unit = word._unit || currentUnit || 1;
+  const unit = word._unit || (currentUnit && UNITS[currentUnit] ? currentUnit : null);
+  const weekId = word._weekId || null;
   const allWords = _getDistractorSource(unit, _spCards);
-  const wrong = shuffle(allWords.filter(w => w[0] !== word[0])).slice(0, 3);
+  const wrong = _pickDistinctDistractors(word, allWords, 3);
   const opts = shuffle([word, ...wrong]);
-  const pct = Math.round((_spIdx / _spTotal) * 100);
+  const correctIdx = opts.findIndex(o => _normQuizText(o[0]) === _normQuizText(word[0]));
+  const pct = _spTotal > 0 ? Math.round((_spIdx / _spTotal) * 100) : 0;
   const comboVal = typeof _comboCount !== 'undefined' ? _comboCount : 0;
   const keys = ['A', 'B', 'C', 'D'];
-  const backHandler = _spBackFn || (currentUnit ? `openUnit(${currentUnit})` : 'goHome()');
   const titleText = _spTitle || 'Hız Modu';
-  const unitLabel = _spTitle
-    ? (word._unit ? `Ünite ${word._unit}` : 'Karışık Mod')
-    : (currentUnit ? `Ünite ${currentUnit}` : 'Karışık Mod');
+  const unitLabel = weekId
+    ? (word._weekLabel || 'Haftalık Kelime')
+    : (_spTitle
+      ? (word._unit ? `Ünite ${word._unit}` : 'Karışık Mod')
+      : (currentUnit ? `Ünite ${currentUnit}` : 'Karışık Mod'));
   _spAnswered = false;
+  _speedCurrentQ = { word, opts, correctIdx, unit, weekId };
 
   s.innerHTML = `
   <div class="unit-header">
-    <button class="back-btn" onclick="_clearSpeedTimer();${backHandler}" aria-label="Geri">${icon('arrowLeft', 18)}</button>
+    <button type="button" class="back-btn" onclick="_runBackHandler(_spBackFn, currentUnit)" aria-label="Geri">${icon('arrowLeft', 18)}</button>
     <div>
       <div class="unit-title-h" style="color:var(--tone-red-fg)">${icon('timer', 18)} ${esc(titleText)}</div>
-      <div class="unit-sub">${unitLabel} · ${_spIdx + 1}/${_spTotal}</div>
+      <div class="unit-sub">${esc(unitLabel)} · ${_spIdx + 1}/${_spTotal}</div>
     </div>
     <div class="speed-timer-wrap">
       <svg class="speed-timer-ring" viewBox="0 0 44 44">
@@ -929,8 +1075,8 @@ function _renderSpeedQ() {
     </div>
     <div class="mc-options" id="speed-opts">
       ${opts.map((o, idx) => `
-        <button type="button" class="mc-opt" data-word="${escQ(o[0])}" onclick="checkSpeedQ(this,'${escQ(o[0])}','${escQ(word[0])}','${escQ(word[1])}')">
-          <span class="mc-opt-key">${keys[idx]}</span>
+        <button type="button" class="mc-opt" data-idx="${idx}" onclick="checkSpeedQ(this,${idx})">
+          <span class="mc-opt-key">${keys[idx] || (idx + 1)}</span>
           <span class="mc-opt-text">${esc(o[1])}</span>
           <span class="mc-opt-status"></span>
         </button>`).join('')}
@@ -950,8 +1096,8 @@ function _freezeTimer() {
   _clearSpeedTimer();
 }
 
-function checkSpeedQ(btn, chosen, correct, meaning) {
-  if (_spAnswered) return;
+function checkSpeedQ(btn, chosenIdx) {
+  if (_spAnswered || !_speedCurrentQ) return;
   if (!_spCards || _spIdx >= _spCards.length) return;
 
   _spAnswered = true;
@@ -959,24 +1105,30 @@ function checkSpeedQ(btn, chosen, correct, meaning) {
   _freezeTimer();
   document.querySelectorAll('#speed-opts .mc-opt').forEach(b => b.classList.add('disabled'));
 
-  const word = _spCards[_spIdx];
-  if (!word) {
-    _spIdx++;
-    _renderSpeedQ();
-    return;
-  }
-  const unit = word._unit || currentUnit || 1;
+  const q = _speedCurrentQ;
+  const word = q.word;
+  const chosenWord = q.opts[chosenIdx];
+  const isCorrect = chosenIdx === q.correctIdx ||
+    (chosenWord && _normQuizText(chosenWord[0]) === _normQuizText(word[0])) ||
+    (chosenWord && _normQuizText(chosenWord[1]) === _normQuizText(word[1]));
+  const unit = q.unit;
+  const weekId = q.weekId;
+  const errKey = weekId ? ('w_' + weekId + '_' + word[0]) : (unit ? ('u' + unit + '_' + word[0]) : null);
   const hintEl = document.getElementById('speed-xp-hint');
   const timeLeft = _timeLeftNow();
   _spTimeSum += (SPEED_TIME - timeLeft);
   const stEl = btn.querySelector('.mc-opt-status');
 
-  if (chosen === correct) {
+  if (isCorrect) {
     btn.classList.add('correct');
     if (stEl) stEl.innerHTML = icon('check', 16);
     _spScore++;
-    if (UNITS[unit]) markLearned(unit, correct);
-    delete errorBox['u' + unit + '_' + correct]; saveErrors();
+    if (weekId && typeof markWeeklyWordLearned === 'function') {
+      markWeeklyWordLearned(weekId, word[0], true, true);
+    } else if (unit && UNITS[unit]) {
+      markLearned(unit, word[0]);
+    }
+    if (errKey && errorBox[errKey]) { delete errorBox[errKey]; saveErrors(); }
 
     const isBonus = timeLeft >= SPEED_BONUS_TIME;
     const mult = typeof _getComboMultiplier === 'function' ? _getComboMultiplier() : 1;
@@ -1004,61 +1156,82 @@ function checkSpeedQ(btn, chosen, correct, meaning) {
       if (typeof _trackQuestStat === 'function') _trackQuestStat('mcCorrect');
       if (typeof _checkQuests === 'function') _checkQuests();
       if (typeof _checkAchievements === 'function') _checkAchievements();
+      if (typeof syncActiveUserStats === 'function') syncActiveUserStats();
       if (typeof _showXPBubble === 'function') _showXPBubble(btn, xp, bonusComboXp);
       if (newLevel > prevLevel && typeof _showLevelUp === 'function') setTimeout(() => _showLevelUp(newLevel), 700);
       if (typeof _renderHUD === 'function') _renderHUD();
     }
     if (typeof playGameSFX === 'function') playGameSFX(isBonus ? 'bonus' : 'correct', typeof _comboCount !== 'undefined' ? _comboCount : 1);
     if (typeof _spawnConfetti === 'function') _spawnConfetti(isBonus ? 28 : 16);
-    _quizNextTimer = setTimeout(() => { _spIdx++; _renderSpeedQ(); }, 850);
+    _quizNextTimer = setTimeout(() => {
+      const scr = document.getElementById('screen-speed');
+      if (!scr || !scr.classList.contains('active')) return;
+      _spIdx++;
+      _renderSpeedQ();
+    }, 850);
   } else {
     btn.classList.add('wrong');
     if (stEl) stEl.innerHTML = icon('x', 16);
     _spWrong++;
-    document.querySelectorAll('#speed-opts .mc-opt').forEach(b => {
-      if (b.dataset.word === correct) {
-        b.classList.add('correct');
-        const st = b.querySelector('.mc-opt-status');
-        if (st) st.innerHTML = icon('check', 16);
-      }
-    });
-    if (UNITS[unit]) markUnlearned(unit, correct);
-    errorBox['u' + unit + '_' + correct] = { word: correct, meaning, unit }; saveErrors();
+    const correctBtn = document.querySelector(`#speed-opts .mc-opt[data-idx="${q.correctIdx}"]`);
+    if (correctBtn) {
+      correctBtn.classList.add('correct');
+      const st = correctBtn.querySelector('.mc-opt-status');
+      if (st) st.innerHTML = icon('check', 16);
+    }
+    if (weekId && typeof markWeeklyWordLearned === 'function') {
+      markWeeklyWordLearned(weekId, word[0], false, true);
+    } else if (unit && UNITS[unit]) {
+      markUnlearned(unit, word[0]);
+    }
+    if (errKey) {
+      errorBox[errKey] = { word: word[0], meaning: word[1], unit: unit || (word._weekLabel || 'Haftalık'), weekId: weekId || undefined };
+      saveErrors();
+    }
     if (hintEl) {
       hintEl.innerHTML = `${icon('x', 14)} Yanlış. <b>+0 XP</b>`;
       hintEl.className = 'speed-xp-hint sp-feedback-wrong';
     }
     if (typeof playGameSFX === 'function') playGameSFX('wrong');
     if (typeof _triggerWrong === 'function') _triggerWrong(btn);
-    _quizNextTimer = setTimeout(() => { _spIdx++; _renderSpeedQ(); }, 1350);
+    _quizNextTimer = setTimeout(() => {
+      const scr = document.getElementById('screen-speed');
+      if (!scr || !scr.classList.contains('active')) return;
+      _spIdx++;
+      _renderSpeedQ();
+    }, 1350);
   }
 }
 
 function _timeoutSpeedQ() {
-  if (_spAnswered) return;
+  if (_spAnswered || !_speedCurrentQ) return;
   if (!_spCards || _spIdx >= _spCards.length) return;
 
   _spAnswered = true;
   _freezeTimer();
-  const word = _spCards[_spIdx];
-  if (!word || !word[0]) {
-    _spIdx++;
-    _renderSpeedQ();
-    return;
-  }
-  const unit = word._unit || currentUnit || 1;
+  const q = _speedCurrentQ;
+  const word = q.word;
+  const unit = q.unit;
+  const weekId = q.weekId;
+  const errKey = weekId ? ('w_' + weekId + '_' + word[0]) : (unit ? ('u' + unit + '_' + word[0]) : null);
   _spWrong++;
   _spTimeSum += SPEED_TIME;
-  document.querySelectorAll('#speed-opts .mc-opt').forEach(b => {
-    b.classList.add('disabled');
-    if (b.dataset.word === word[0]) {
-      b.classList.add('correct');
-      const st = b.querySelector('.mc-opt-status');
-      if (st) st.innerHTML = icon('check', 16);
-    }
-  });
-  if (UNITS[unit]) markUnlearned(unit, word[0]);
-  errorBox['u' + unit + '_' + word[0]] = { word: word[0], meaning: word[1], unit }; saveErrors();
+  document.querySelectorAll('#speed-opts .mc-opt').forEach(b => b.classList.add('disabled'));
+  const correctBtn = document.querySelector(`#speed-opts .mc-opt[data-idx="${q.correctIdx}"]`);
+  if (correctBtn) {
+    correctBtn.classList.add('correct');
+    const st = correctBtn.querySelector('.mc-opt-status');
+    if (st) st.innerHTML = icon('check', 16);
+  }
+  if (weekId && typeof markWeeklyWordLearned === 'function') {
+    markWeeklyWordLearned(weekId, word[0], false, true);
+  } else if (unit && UNITS[unit]) {
+    markUnlearned(unit, word[0]);
+  }
+  if (errKey) {
+    errorBox[errKey] = { word: word[0], meaning: word[1], unit: unit || (word._weekLabel || 'Haftalık'), weekId: weekId || undefined };
+    saveErrors();
+  }
   const hintEl = document.getElementById('speed-xp-hint');
   if (hintEl) {
     hintEl.innerHTML = `${icon('clock', 14)} <b>Süre Doldu! Otomatik Yanlış.</b>`;
@@ -1066,7 +1239,12 @@ function _timeoutSpeedQ() {
   }
   if (typeof playGameSFX === 'function') playGameSFX('wrong');
   if (typeof _triggerWrong === 'function') _triggerWrong();
-  _quizNextTimer = setTimeout(() => { _spIdx++; _renderSpeedQ(); }, 1500);
+  _quizNextTimer = setTimeout(() => {
+    const scr = document.getElementById('screen-speed');
+    if (!scr || !scr.classList.contains('active')) return;
+    _spIdx++;
+    _renderSpeedQ();
+  }, 1500);
 }
 
 function _renderSpeedResult() {

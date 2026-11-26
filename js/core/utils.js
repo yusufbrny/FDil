@@ -4,6 +4,10 @@ function showScreen(id, direction = 'forward') {
   if (id !== 'screen-speed' && typeof _clearSpeedTimer === 'function') {
     _clearSpeedTimer();
   }
+  const quizScreens = ['screen-mc', 'screen-fib', 'screen-syn-quiz', 'screen-ant-quiz', 'screen-speed'];
+  if (!quizScreens.includes(id) && typeof _clearQuizTimer === 'function') {
+    _clearQuizTimer();
+  }
   document.querySelectorAll('.screen').forEach(s => {
     s.classList.remove('active', 'slide-out-left', 'slide-out-right');
   });
@@ -12,7 +16,16 @@ function showScreen(id, direction = 'forward') {
   window.scrollTo(0, 0);
 }
 
-function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+function shuffle(arr) {
+  const a = Array.isArray(arr) ? [...arr] : [];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = a[i];
+    a[i] = a[j];
+    a[j] = tmp;
+  }
+  return a;
+}
 
 // XSS güvenli HTML escape — innerHTML'e yazmadan önce daima kullan
 function esc(s) {

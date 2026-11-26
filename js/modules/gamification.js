@@ -211,7 +211,10 @@ function _markAchievementShown(id) {
 
 function getTotalLearned() {
   let total = 0;
-  Object.values(progressRaw).forEach(arr => total += arr.length);
+  Object.values(progressRaw).forEach(arr => total += (Array.isArray(arr) ? arr.length : 0));
+  if (typeof weeklyProgress !== 'undefined' && weeklyProgress && typeof weeklyProgress === 'object') {
+    Object.values(weeklyProgress).forEach(arr => total += (Array.isArray(arr) ? arr.length : 0));
+  }
   return total;
 }
 

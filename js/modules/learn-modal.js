@@ -199,9 +199,15 @@ function practiceErrors() {
   showScreen('screen-flash');
 }
 function practiceErrorsMC() {
-  const errs = Object.values(errorBox); if (errs.length < 4) { showToast('Test için en az 4 kelime olmalı!'); return; }
-  currentCards = shuffle(errs.map(e => { const w = [e.word, e.meaning, '']; w._unit = e.unit; return w; }));
-  cardIndex = 0; mcScore = 0; mcTotal = currentCards.length; renderMC('showErrorBox()', 'Hata Kumbarası - Test'); showScreen('screen-mc');
+  const errs = Object.values(errorBox);
+  if (errs.length < 4) { showToast('Test için en az 4 kelime olmalı!'); return; }
+  const pool = shuffle(errs.map(e => {
+    const w = [e.word, e.meaning, ''];
+    if (e.unit && UNITS[e.unit]) w._unit = e.unit;
+    if (e.weekId) w._weekId = e.weekId;
+    return w;
+  }));
+  startMC(pool, 'showErrorBox()', 'Hata Kumbarası - Test');
 }
 
 

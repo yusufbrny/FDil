@@ -4,6 +4,7 @@ let _fcSwiping = false;
 let _flashBackFn = null;
 let _flashTitle = null;
 let _flashUnitTagFn = null;
+let _flashOriginPool = null;
 let _pvMode = false;
 let _flashHistory = [];
 let _fcAutoSpeak = localStorage.getItem('ydt_fc_autospeak') === '1';
@@ -83,6 +84,7 @@ function startFlash(words, opts) {
   }
   if (!pool || pool.length === 0) { showToast('Bu ünitede kelime yok!'); return; }
   currentCards = pool;
+  _flashOriginPool = [...pool];
   cardIndex = 0;
   known = [];
   unknown = [];
@@ -303,6 +305,16 @@ function undoLastFlash() {
         delete pvErrors[last.errorKey];
       }
       savePVErrors();
+    } else if (last.weekId) {
+      if (typeof markWeeklyWordLearned === 'function') {
+        markWeeklyWordLearned(last.weekId, last.word[0], !!last.wasLearned, true);
+      }
+      if (last.hadError && last.prevErrorObj) {
+        errorBox[last.errorKey] = last.prevErrorObj;
+      } else if (last.errorKey) {
+        delete errorBox[last.errorKey];
+      }
+      saveErrors();
     } else if (last.unit) {
       if (last.wasLearned) {
         if (!progressRaw[last.unit]) progressRaw[last.unit] = [];
@@ -551,7 +563,8 @@ function swipeCard(dir) {
     if (typeof _shakeElement === 'function') _shakeElement(document.getElementById('fc'));
   }
 
-  const unit = word._unit || currentUnit || 1;
+  const weekId = word._weekId || null;
+  const unit = weekId ? null : (word._unit || (currentUnit && UNITS[currentUnit] ? currentUnit : null));
   const isPV = !!(_pvMode || currentCards._pvMode);
 
   try {
@@ -566,26 +579,44 @@ function swipeCard(dir) {
         if (pvErrors[pvKey]) { delete pvErrors[pvKey]; savePVErrors(); }
       } else {
         unknown.push(word);
-        pvErrors[pvKey] = { pv: card[0], tr: card[1].split('\n')[0], unit };
+        pvErrors[pvKey] = { pv: card[0], tr: card[1].split('\n')[0], unit: unit || 1 };
         savePVErrors();
       }
-    } else {
-      const errorKey = 'u' + unit + '_' + word[0];
+    } else if (weekId) {
+      const errorKey = 'w_' + weekId + '_' + word[0];
       const hadError = !!errorBox[errorKey];
       const prevErrorObj = hadError ? { ...errorBox[errorKey] } : null;
-      const wasLearned = typeof getLearnedSet === 'function' && UNITS[unit] ? getLearnedSet(unit).has(word[0]) : false;
+      const wasLearned = typeof isWeeklyWordLearned === 'function' ? isWeeklyWordLearned(weekId, word[0]) : false;
+      _flashHistory.push({ cardIndex, dir, word, unit: null, weekId, isPV: false, errorKey, hadError, prevErrorObj, wasLearned });
+
+      if (dir === 'right') {
+        known.push(word);
+        if (typeof markWeeklyWordLearned === 'function') markWeeklyWordLearned(weekId, word[0], true, true);
+        if (errorBox[errorKey]) { delete errorBox[errorKey]; saveErrors(); }
+      } else {
+        unknown.push(word);
+        if (typeof markWeeklyWordLearned === 'function') markWeeklyWordLearned(weekId, word[0], false, true);
+        errorBox[errorKey] = { word: word[0], meaning: word[1], unit: word._weekLabel || 'Haftalık', weekId };
+        saveErrors();
+      }
+    } else {
+      const errorKey = unit ? ('u' + unit + '_' + word[0]) : null;
+      const hadError = errorKey ? !!errorBox[errorKey] : false;
+      const prevErrorObj = hadError ? { ...errorBox[errorKey] } : null;
+      const wasLearned = unit && typeof getLearnedSet === 'function' && UNITS[unit] ? getLearnedSet(unit).has(word[0]) : false;
       _flashHistory.push({ cardIndex, dir, word, unit, isPV: false, errorKey, hadError, prevErrorObj, wasLearned });
 
       if (dir === 'right') {
         known.push(word);
-        if (UNITS[unit]) markLearned(unit, word[0]);
-        delete errorBox[errorKey];
-        saveErrors();
+        if (unit && UNITS[unit]) markLearned(unit, word[0]);
+        if (errorKey && errorBox[errorKey]) { delete errorBox[errorKey]; saveErrors(); }
       } else {
         unknown.push(word);
-        if (UNITS[unit]) markUnlearned(unit, word[0]);
-        errorBox[errorKey] = { word: word[0], meaning: word[1], unit };
-        saveErrors();
+        if (unit && UNITS[unit]) markUnlearned(unit, word[0]);
+        if (errorKey) {
+          errorBox[errorKey] = { word: word[0], meaning: word[1], unit };
+          saveErrors();
+        }
       }
     }
   } catch (e) { }
@@ -637,6 +668,16 @@ function renderFlashResult(backFn) {
     });
   };
 
+  window._restartFlashAll = function () {
+    const restartPool = _flashOriginPool && _flashOriginPool.length ? shuffle(_flashOriginPool) : null;
+    startFlash(restartPool, {
+      backFn: _flashBackFn,
+      title: _flashTitle,
+      unitTagFn: _flashUnitTagFn,
+      pvMode: _pvMode
+    });
+  };
+
   s.innerHTML = `
   <div class="result-wrap">
     <div class="result-emoji">${unknown.length === 0 ? icon('trophy', 48) : known.length > unknown.length ? icon('award', 48) : icon('bookOpen', 48)}</div>
@@ -649,7 +690,7 @@ function renderFlashResult(backFn) {
     ${unknown.length > 0 ? `<button type="button" class="result-btn" onclick="window._retryFlashUnknown()">${icon('repeat', 16)} Bilemediklerimi Tekrar Et (${unknown.length})</button>` : ''}
     ${_pvMode
       ? `<button type="button" class="result-btn ${_pvMode && unknown.length > 0 ? 'outline' : ''}" style="${unknown.length > 0 ? 'margin-top:8px' : ''}" onclick="startPVFlash()">${icon('shuffle', 16)} Yeniden Başla</button>`
-      : `<button type="button" class="result-btn ${unknown.length > 0 ? 'outline' : ''}" onclick="startFlash()">${icon('shuffle', 16)} Yeniden Başla</button>`}
+      : `<button type="button" class="result-btn ${unknown.length > 0 ? 'outline' : ''}" onclick="window._restartFlashAll()">${icon('shuffle', 16)} Yeniden Başla</button>`}
     <button type="button" class="result-btn outline" onclick="${backHandler}">${icon('arrowLeft', 16)} Geri Dön</button>
   </div>`;
 }

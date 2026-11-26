@@ -99,13 +99,59 @@ function _saveUsers(users) {
   localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(users));
 }
 
-function _getSessionUserId() {
-  return localStorage.getItem(AUTH_SESSION_KEY) || null;
+function _readSessionCookie() {
+  try {
+    const m = document.cookie.match(/(?:^|;\s*)fdil_uid=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : null;
+  } catch (e) { return null; }
 }
 
-function _setSessionUserId(userId) {
-  if (userId) localStorage.setItem(AUTH_SESSION_KEY, userId);
-  else localStorage.removeItem(AUTH_SESSION_KEY);
+function _writeSessionCookie(userId) {
+  try {
+    if (userId) {
+      document.cookie = `fdil_uid=${encodeURIComponent(userId)}; max-age=${60 * 60 * 24 * 365}; path=/; SameSite=Lax`;
+    } else {
+      document.cookie = 'fdil_uid=; max-age=0; path=/; SameSite=Lax';
+    }
+  } catch (e) { }
+}
+
+function _getSessionUserId() {
+  let uid = null;
+  try { uid = localStorage.getItem(AUTH_SESSION_KEY); } catch (e) { }
+  if (!uid) {
+    try { uid = sessionStorage.getItem(AUTH_SESSION_KEY); } catch (e) { }
+  }
+  if (!uid) uid = _readSessionCookie();
+  if (!uid) return null;
+  const exists = _getUsers().some(u => u.id === uid);
+  if (!exists) {
+    _setSessionUserId(null);
+    return null;
+  }
+  return uid;
+}
+
+function _setSessionUserId(userId, remember = true) {
+  if (userId) {
+    if (remember) {
+      try { localStorage.setItem(AUTH_SESSION_KEY, userId); } catch (e) { }
+      try { sessionStorage.removeItem(AUTH_SESSION_KEY); } catch (e) { }
+      _writeSessionCookie(userId);
+    } else {
+      try { sessionStorage.setItem(AUTH_SESSION_KEY, userId); } catch (e) { }
+      try { localStorage.removeItem(AUTH_SESSION_KEY); } catch (e) { }
+      _writeSessionCookie(null);
+    }
+  } else {
+    try { localStorage.removeItem(AUTH_SESSION_KEY); } catch (e) { }
+    try { sessionStorage.removeItem(AUTH_SESSION_KEY); } catch (e) { }
+    _writeSessionCookie(null);
+  }
+}
+
+function isAuthenticated() {
+  return !!_getSessionUserId();
 }
 
 function getActiveProfile() {
@@ -161,6 +207,7 @@ function _collectCurrentRuntimeSnapshot() {
     streak: typeof _streakData !== 'undefined' ? _streakData : { streak: 0, lastDate: '', longest: 0 },
     goal: typeof _goalData !== 'undefined' ? _goalData : { target: 20, today: '', count: 0 },
     progress: typeof progressRaw !== 'undefined' ? progressRaw : {},
+    weeklyProgress: typeof weeklyProgress !== 'undefined' ? weeklyProgress : {},
     errors: typeof errorBox !== 'undefined' ? errorBox : {},
     pvErrors: typeof pvErrors !== 'undefined' ? pvErrors : {},
     customVocab: typeof customVocab !== 'undefined' ? customVocab : [],
@@ -195,6 +242,10 @@ function _applySnapshotToRuntime(snap) {
   if (typeof progressRaw !== 'undefined') {
     progressRaw = snap.progress || {};
     if (typeof saveProgress === 'function') saveProgress();
+  }
+  if (typeof weeklyProgress !== 'undefined') {
+    weeklyProgress = snap.weeklyProgress || {};
+    if (typeof saveWeeklyProgress === 'function') saveWeeklyProgress();
   }
   if (typeof errorBox !== 'undefined') {
     errorBox = snap.errors || {};
@@ -316,14 +367,27 @@ function openProfileOrAuth() {
 
 /* ── AUTH MODAL (LOGIN & 3-STEP REGISTER / PROFILE WIZARD) ── */
 let _authTab = 'login';
+let _authMandatory = false;
 let _regStep = 1;
 let _regDraft = null;
 
-function openAuthModal(defaultTab = 'login') {
+function enforceAuthGate() {
+  if (isAuthenticated()) {
+    document.body.classList.remove('auth-locked');
+    return true;
+  }
+  document.body.classList.add('auth-locked');
+  const hasAccounts = _getUsers().length > 0;
+  openAuthModal(hasAccounts ? 'login' : 'register', { mandatory: true });
+  return false;
+}
+
+function openAuthModal(defaultTab = 'login', opts = {}) {
   const old = document.getElementById('auth-modal-overlay');
   if (old) old.remove();
 
-  _authTab = defaultTab;
+  _authMandatory = !!opts.mandatory || !isAuthenticated();
+  _authTab = defaultTab || (_getUsers().length > 0 ? 'login' : 'register');
   _regStep = 1;
   const g = getActiveProfile();
   _regDraft = {
@@ -331,9 +395,10 @@ function openAuthModal(defaultTab = 'login') {
     username: '',
     email: '',
     password: '',
-    role: g.role || 'Yüksek Lisans Adayı',
-    examType: g.examType || 'YOKDIL',
-    examBranch: g.examBranch || 'saglik',
+    remember: true,
+    role: g.role || 'YDT (YKS-Dil) Adayı',
+    examType: g.examType || 'YDT',
+    examBranch: g.examBranch || 'ydt_dil',
     currentLevel: g.currentLevel || 'B1',
     targetScore: g.targetScore || 70,
     targetYdtNet: g.targetYdtNet || 65,
@@ -350,16 +415,24 @@ function openAuthModal(defaultTab = 'login') {
 
   const overlay = document.createElement('div');
   overlay.id = 'auth-modal-overlay';
-  overlay.className = 'auth-modal-overlay';
-  overlay.onclick = (e) => { if (e.target === overlay) closeAuthModal(); };
+  overlay.className = 'auth-modal-overlay' + (_authMandatory ? ' is-mandatory' : '');
+  overlay.dataset.mandatory = _authMandatory ? '1' : '0';
+  overlay.onclick = (e) => {
+    if (e.target === overlay && !_authMandatory) closeAuthModal();
+  };
   document.body.appendChild(overlay);
   _renderAuthModalContent();
   requestAnimationFrame(() => overlay.classList.add('show'));
 }
 
-function closeAuthModal() {
+function closeAuthModal(force = false) {
+  if (_authMandatory && !force && !isAuthenticated()) return;
   const overlay = document.getElementById('auth-modal-overlay');
   if (overlay) overlay.remove();
+  if (isAuthenticated()) {
+    _authMandatory = false;
+    document.body.classList.remove('auth-locked');
+  }
 }
 
 function switchAuthTab(tab) {
@@ -419,11 +492,15 @@ function _renderAuthModalContent() {
           <label>Şifre</label>
           <input id="login-pass" type="password" placeholder="••••••••" required autocomplete="current-password">
         </div>
+        <label class="auth-remember-row">
+          <input id="login-remember" type="checkbox" checked>
+          <span>Beni hatırla (oturum açık kalsın)</span>
+        </label>
         <button type="submit" class="auth-submit-btn">${icon('checkCircle', 16)} Giriş Yap</button>
       </form>
       ${users.length > 0 ? `
         <div class="auth-saved-accounts">
-          <div class="auth-saved-title">Bu Cihazdaki Kayıtlı Profiller</div>
+          <div class="auth-saved-title">Bu Cihazdaki Kayıtlı Hesaplar</div>
           <div class="auth-saved-list">
             ${users.map(u => `
               <button type="button" class="auth-saved-chip" onclick="quickSwitchAccount('${escQ(u.id)}')">
@@ -638,17 +715,18 @@ function _renderAuthModalContent() {
 
   overlay.innerHTML = `
     <div class="auth-modal-card">
-      <button type="button" class="auth-close-x" onclick="closeAuthModal()" aria-label="Kapat">${icon('x', 18)}</button>
+      ${_authMandatory ? '' : `<button type="button" class="auth-close-x" onclick="closeAuthModal()" aria-label="Kapat">${icon('x', 18)}</button>`}
       <div class="auth-hero">
         <div class="auth-hero-mascot">${mascotHero}</div>
         <div>
-          <div class="auth-hero-title">FDil · YDT · YDS · YÖKDİL Kulübü</div>
-          <div class="auth-hero-sub">Kişisel sınav koçun, günlük hedeflerin ve liderlik tablosu tek yerde</div>
+          <div class="auth-hero-title">FDil · Akademik Kelime &amp; Sınav Koçu</div>
+          <div class="auth-hero-sub">${_authMandatory ? 'Devam etmek için giriş yap veya yeni profil oluştur. Oturumun bu cihazda hatırlanır.' : 'Hesap değiştir veya yeni profil oluştur'}</div>
+          ${_authMandatory ? '<div class="header-love-note" style="margin-top:4px">Seni çok seviyorum</div>' : ''}
         </div>
       </div>
       <div class="auth-tabs">
         <button type="button" class="${_authTab === 'login' ? 'active' : ''}" onclick="switchAuthTab('login')">Giriş Yap</button>
-        <button type="button" class="${_authTab === 'register' ? 'active' : ''}" onclick="switchAuthTab('register')">Kayıt Ol &amp; Profil Oluştur</button>
+        <button type="button" class="${_authTab === 'register' ? 'active' : ''}" onclick="switchAuthTab('register')">Kayıt Ol</button>
       </div>
       <div class="auth-body">${bodyHtml}</div>
     </div>
@@ -747,11 +825,11 @@ function submitRegisterWizard() {
     stats: {}
   };
 
-  // Migrate current local guest progress if this is the first user, else start fresh cleanly
+  // Migrate current local progress if this is the first user, else start fresh cleanly
   const isFirstAccount = users.length === 0;
   users.push(newUser);
   _saveUsers(users);
-  _setSessionUserId(newId);
+  _setSessionUserId(newId, true);
 
   if (isFirstAccount) {
     if (typeof _goalData !== 'undefined') {
@@ -767,19 +845,22 @@ function submitRegisterWizard() {
     syncActiveUserStats();
   }
 
-  closeAuthModal();
+  try { localStorage.setItem('ydt_onboarding_done', '1'); } catch (e) { }
+  closeAuthModal(true);
   if (typeof _renderHUD === 'function') _renderHUD();
   if (typeof renderHome === 'function') renderHome();
-  showToast(`Hoş geldin ${newUser.name}! Profilin hazır.`);
+  showToast(`Hoş geldin ${newUser.name}! Oturumun bu cihazda hatırlanacak.`);
 }
 
 function submitLoginForm() {
   const identEl = document.getElementById('login-ident');
   const passEl = document.getElementById('login-pass');
+  const remEl = document.getElementById('login-remember');
   if (!identEl || !passEl) return;
 
   const ident = identEl.value.trim().toLowerCase();
   const pass = passEl.value;
+  const remember = remEl ? !!remEl.checked : true;
   const users = _getUsers();
   const found = users.find(u =>
     u.username.toLowerCase() === ident ||
@@ -794,11 +875,11 @@ function submitLoginForm() {
   const prevUid = _getSessionUserId();
   if (prevUid) saveUserSnapshot(prevUid);
 
-  _setSessionUserId(found.id);
+  _setSessionUserId(found.id, remember);
   loadUserSnapshot(found.id);
   syncActiveUserStats();
 
-  closeAuthModal();
+  closeAuthModal(true);
   if (typeof _renderHUD === 'function') _renderHUD();
   if (typeof renderHome === 'function') renderHome();
   showToast(`Tekrar hoş geldin, ${found.name}!`);
@@ -812,11 +893,11 @@ function quickSwitchAccount(userId) {
   const prevUid = _getSessionUserId();
   if (prevUid) saveUserSnapshot(prevUid);
 
-  _setSessionUserId(target.id);
+  _setSessionUserId(target.id, true);
   loadUserSnapshot(target.id);
   syncActiveUserStats();
 
-  closeAuthModal();
+  closeAuthModal(true);
   if (typeof _renderHUD === 'function') _renderHUD();
   if (typeof renderHome === 'function') renderHome();
   showToast(`${target.name} profiline geçildi!`);
@@ -826,10 +907,12 @@ function logoutAccount() {
   const prevUid = _getSessionUserId();
   if (prevUid) saveUserSnapshot(prevUid);
   _setSessionUserId(null);
+  _applySnapshotToRuntime({});
   if (typeof _renderHUD === 'function') _renderHUD();
   if (typeof renderHome === 'function') renderHome();
   showScreen('screen-home');
-  showToast('Çıkış yapıldı.');
+  showToast('Çıkış yapıldı. Devam etmek için giriş yapın.');
+  enforceAuthGate();
 }
 
 /* ── PROFILE SCREEN ── */
@@ -1103,32 +1186,7 @@ function updateProfileExamQuick(examType, examBranch, targetVal) {
   if (typeof _renderGoalCard === 'function') _renderGoalCard();
 }
 
-/* ── LEADERBOARD SYSTEM ── */
-const SEEDED_PEERS = [
-  { id: 'p1', name: 'Dr. Elif Arslan', username: 'elif_tus', role: 'TUS Adayı', examType: 'YOKDIL', examBranch: 'saglik', targetScore: 85, avatar: 'health', xp: 4820, weeklyXP: 1410, streak: 28, learnedCount: 640 },
-  { id: 'p2', name: 'Mert Can Yılmaz', username: 'mert_eng', role: 'Doktora Öğrencisi', examType: 'YDS', examBranch: 'genel', targetScore: 90, avatar: 'scholar', xp: 4390, weeklyXP: 1290, streak: 21, learnedCount: 590 },
-  { id: 'p3', name: 'Selin Demirtaş', username: 'selin_bio', role: 'Yüksek Lisans Adayı', examType: 'YOKDIL', examBranch: 'fen', targetScore: 80, avatar: 'science', xp: 3910, weeklyXP: 1120, streak: 19, learnedCount: 520 },
-  { id: 'p4', name: 'Ahmet Kılıç', username: 'akilic_hukuk', role: 'Arş. Gör.', examType: 'YOKDIL', examBranch: 'sosyal', targetScore: 85, avatar: 'social', xp: 3560, weeklyXP: 980, streak: 16, learnedCount: 485 },
-  { id: 'p5', name: 'Büşra Öztürk', username: 'busra_med', role: 'TUS / DUS Adayı', examType: 'YOKDIL', examBranch: 'saglik', targetScore: 75, avatar: 'health', xp: 3120, weeklyXP: 870, streak: 15, learnedCount: 430 },
-  { id: 'p6', name: 'Kerem Aksoy', username: 'kerem_yds', role: 'Dil Tazminatı Adayı', examType: 'YDS', examBranch: 'genel', targetScore: 80, avatar: 'champion', xp: 2880, weeklyXP: 810, streak: 12, learnedCount: 395 },
-  { id: 'p7', name: 'Zehra Nur Çelik', username: 'zehra_ee', role: 'Yüksek Lisans Adayı', examType: 'YOKDIL', examBranch: 'fen', targetScore: 75, avatar: 'science', xp: 2540, weeklyXP: 740, streak: 14, learnedCount: 360 },
-  { id: 'p8', name: 'Emre Şahin', username: 'emre_sosyal', role: 'Doktora Öğrencisi', examType: 'YOKDIL', examBranch: 'sosyal', targetScore: 70, avatar: 'social', xp: 2290, weeklyXP: 660, streak: 10, learnedCount: 325 },
-  { id: 'p9', name: 'Deniz Karahan', username: 'deniz_yds', role: 'Akademisyen', examType: 'YDS', examBranch: 'genel', targetScore: 85, avatar: 'scholar', xp: 1980, weeklyXP: 580, streak: 9, learnedCount: 290 },
-  { id: 'p10', name: 'İrem Koç', username: 'irem_diyet', role: 'Yüksek Lisans Adayı', examType: 'YOKDIL', examBranch: 'saglik', targetScore: 70, avatar: 'health', xp: 1740, weeklyXP: 510, streak: 8, learnedCount: 255 },
-  { id: 'p11', name: 'Burak Tanrıverdi', username: 'burak_makine', role: 'Yüksek Lisans Adayı', examType: 'YOKDIL', examBranch: 'fen', targetScore: 65, avatar: 'science', xp: 1510, weeklyXP: 430, streak: 7, learnedCount: 220 },
-  { id: 'p12', name: 'Ayşe Melis Güneş', username: 'ayse_tarih', role: 'Doktora Öğrencisi', examType: 'YOKDIL', examBranch: 'sosyal', targetScore: 75, avatar: 'social', xp: 1320, weeklyXP: 380, streak: 6, learnedCount: 195 },
-  { id: 'p13', name: 'Oğuzhan Yıldız', username: 'oguz_yds', role: 'Dil Tazminatı Adayı', examType: 'YDS', examBranch: 'genel', targetScore: 70, avatar: 'classic', xp: 1080, weeklyXP: 310, streak: 5, learnedCount: 165 },
-  { id: 'p14', name: 'Ceren Aydın', username: 'ceren_ecz', role: 'TUS / DUS Adayı', examType: 'YOKDIL', examBranch: 'saglik', targetScore: 65, avatar: 'health', xp: 890, weeklyXP: 245, streak: 4, learnedCount: 140 },
-  { id: 'p15', name: 'Yusuf Emre Polat', username: 'yusuf_kimya', role: 'Yüksek Lisans Adayı', examType: 'YOKDIL', examBranch: 'fen', targetScore: 65, avatar: 'classic', xp: 710, weeklyXP: 190, streak: 4, learnedCount: 118 },
-  { id: 'p16', name: 'Nazlı Korkmaz', username: 'nazli_psik', role: 'Yüksek Lisans Adayı', examType: 'YOKDIL', examBranch: 'sosyal', targetScore: 70, avatar: 'social', xp: 540, weeklyXP: 145, streak: 3, learnedCount: 92 },
-  { id: 'p17', name: 'Kaan Doğan', username: 'kaan_yds', role: 'Üniversite Öğrencisi', examType: 'YDS', examBranch: 'genel', targetScore: 65, avatar: 'classic', xp: 360, weeklyXP: 95, streak: 2, learnedCount: 64 },
-  { id: 'p18', name: 'Sude Başaran', username: 'sude_saglik', role: 'Yüksek Lisans Adayı', examType: 'YOKDIL', examBranch: 'saglik', targetScore: 60, avatar: 'classic', xp: 185, weeklyXP: 55, streak: 1, learnedCount: 38 },
-  { id: 'p19', name: 'Zeynep Naz Kaya', username: 'zeynep_ydt', role: 'YDT (YKS-Dil) Adayı', examType: 'YDT', examBranch: 'ydt_dil', targetScore: 85, targetYdtNet: 74, avatar: 'champion', xp: 4050, weeklyXP: 1180, streak: 20, learnedCount: 545 },
-  { id: 'p20', name: 'Arda Yılmaz', username: 'arda_yksdil', role: 'YDT (YKS-Dil) Adayı', examType: 'YDT', examBranch: 'ydt_dil', targetScore: 80, targetYdtNet: 68, avatar: 'scholar', xp: 3040, weeklyXP: 890, streak: 13, learnedCount: 410 },
-  { id: 'p21', name: 'Ece Demir', username: 'ece_ydt', role: 'YDT (YKS-Dil) Adayı', examType: 'YDT', examBranch: 'ydt_dil', targetScore: 75, targetYdtNet: 62, avatar: 'classic', xp: 1840, weeklyXP: 540, streak: 9, learnedCount: 270 },
-  { id: 'p22', name: 'Tuna Akın', username: 'tuna_dil', role: 'YDT (YKS-Dil) Adayı', examType: 'YDT', examBranch: 'ydt_dil', targetScore: 65, targetYdtNet: 55, avatar: 'classic', xp: 790, weeklyXP: 210, streak: 5, learnedCount: 125 }
-];
-
+/* ── REAL-DATA LEADERBOARD SYSTEM ── */
 let _lbMetric = 'weeklyXP';
 let _lbExamFilter = 'all';
 
@@ -1139,60 +1197,79 @@ function getLeagueForXP(weeklyXP) {
   return LEAGUE_TIERS[LEAGUE_TIERS.length - 1];
 }
 
+function _readRealStatsFromSnapshot(user) {
+  const st = user.stats || {};
+  let snap = null;
+  try {
+    const raw = localStorage.getItem('fdil_userdata_' + user.id);
+    if (raw) snap = JSON.parse(raw);
+  } catch (e) { }
+
+  if (!snap) {
+    return {
+      xp: st.xp || 0,
+      weeklyXP: st.weeklyXP || 0,
+      streak: st.streak || 0,
+      learnedCount: st.learnedCount || 0
+    };
+  }
+
+  let learnedCount = 0;
+  if (snap.progress && typeof snap.progress === 'object') {
+    Object.values(snap.progress).forEach(arr => { if (Array.isArray(arr)) learnedCount += arr.length; });
+  }
+  if (snap.weeklyProgress && typeof snap.weeklyProgress === 'object') {
+    Object.values(snap.weeklyProgress).forEach(arr => { if (Array.isArray(arr)) learnedCount += arr.length; });
+  }
+
+  const curWeekKey = typeof _getWeekKey === 'function' ? _getWeekKey() : '';
+  const snapWeeklyXP = snap.goal && (!curWeekKey || !snap.goal.weekKey || snap.goal.weekKey === curWeekKey)
+    ? (snap.goal.weeklyXP || 0)
+    : 0;
+
+  return {
+    xp: (snap.xp && typeof snap.xp.xp === 'number') ? snap.xp.xp : (st.xp || 0),
+    weeklyXP: snapWeeklyXP,
+    streak: (snap.streak && typeof snap.streak.streak === 'number') ? snap.streak.streak : (st.streak || 0),
+    learnedCount: Math.max(learnedCount, st.learnedCount || 0)
+  };
+}
+
 function getLeaderboardEntries(metric = 'weeklyXP', examFilter = 'all') {
   const activeProfile = getActiveProfile();
   const activeXP = typeof _xpData !== 'undefined' ? (_xpData.xp || 0) : 0;
   const activeStreak = typeof _streakData !== 'undefined' ? (_streakData.streak || 0) : 0;
   const activeLearned = typeof getTotalLearned === 'function' ? getTotalLearned() : 0;
-  const activeWeeklyXP = typeof _goalData !== 'undefined' ? (_goalData.weeklyXP || Math.min(activeXP, 500)) : 0;
+  const activeWeeklyXP = typeof _goalData !== 'undefined' ? (_goalData.weeklyXP || 0) : 0;
 
   const registeredUsers = _getUsers().map(u => {
     const isMe = !activeProfile.isGuest && u.id === activeProfile.id;
-    const st = u.stats || {};
+    const real = isMe
+      ? { xp: activeXP, weeklyXP: activeWeeklyXP, streak: activeStreak, learnedCount: activeLearned }
+      : _readRealStatsFromSnapshot(u);
+
     return {
       id: u.id,
       name: u.name,
       username: u.username,
       role: u.role || 'Aday',
-      examType: u.examType || 'YOKDIL',
-      examBranch: u.examBranch || 'saglik',
+      examType: u.examType || 'YDT',
+      examBranch: u.examBranch || 'ydt_dil',
       targetScore: u.targetScore || 70,
       targetYdtNet: u.targetYdtNet || 65,
       avatar: u.avatar || 'classic',
-      xp: isMe ? activeXP : (st.xp || 0),
-      weeklyXP: isMe ? activeWeeklyXP : (st.weeklyXP || 0),
-      streak: isMe ? activeStreak : (st.streak || 0),
-      learnedCount: isMe ? activeLearned : (st.learnedCount || 0),
+      xp: real.xp,
+      weeklyXP: real.weeklyXP,
+      streak: real.streak,
+      learnedCount: real.learnedCount,
       isMe,
       isRealUser: true
     };
   });
 
-  const allEntries = [...SEEDED_PEERS.map(p => ({ ...p, isMe: false })), ...registeredUsers];
-
-  if (activeProfile.isGuest) {
-    allEntries.push({
-      id: 'guest_me',
-      name: activeProfile.name || 'Sen (Misafir)',
-      username: activeProfile.username || 'misafir',
-      role: activeProfile.role || 'Aday',
-      examType: activeProfile.examType || 'YOKDIL',
-      examBranch: activeProfile.examBranch || 'saglik',
-      targetScore: activeProfile.targetScore || 70,
-      targetYdtNet: activeProfile.targetYdtNet || 65,
-      avatar: activeProfile.avatar || 'classic',
-      xp: activeXP,
-      weeklyXP: activeWeeklyXP,
-      streak: activeStreak,
-      learnedCount: activeLearned,
-      isMe: true,
-      isGuest: true
-    });
-  }
-
-  let filtered = allEntries;
+  let filtered = registeredUsers;
   if (examFilter !== 'all') {
-    filtered = allEntries.filter(e => {
+    filtered = registeredUsers.filter(e => {
       if (examFilter === 'YDT') return e.examType === 'YDT' || e.examType === 'BOTH';
       if (examFilter === 'YDS') return e.examType === 'YDS' || e.examType === 'BOTH';
       if (examFilter === 'YOKDIL_saglik') return e.examType !== 'YDS' && e.examType !== 'YDT' && e.examBranch === 'saglik';
@@ -1205,7 +1282,9 @@ function getLeaderboardEntries(metric = 'weeklyXP', examFilter = 'all') {
   filtered.sort((a, b) => {
     const diff = (b[metric] || 0) - (a[metric] || 0);
     if (diff !== 0) return diff;
-    return (b.xp || 0) - (a.xp || 0);
+    const xpDiff = (b.xp || 0) - (a.xp || 0);
+    if (xpDiff !== 0) return xpDiff;
+    return (b.learnedCount || 0) - (a.learnedCount || 0);
   });
 
   return filtered.map((e, i) => ({ ...e, rank: i + 1 }));
@@ -1216,7 +1295,7 @@ function renderHomeLeaderboardCard() {
   if (!container) return;
 
   const entries = getLeaderboardEntries('weeklyXP', 'all');
-  const me = entries.find(e => e.isMe) || entries[entries.length - 1];
+  const me = entries.find(e => e.isMe) || entries[0] || null;
   const league = getLeagueForXP(me ? me.weeklyXP : 0);
   const top3 = entries.slice(0, 3);
   const meOutsideTop3 = me && me.rank > 3;
@@ -1235,20 +1314,31 @@ function renderHomeLeaderboardCard() {
           </div>
           <div>
             <div class="lb-home-title">Liderlik Tablosu</div>
-            <div class="lb-home-sub">${esc(league.name)} · Sıran: <b>#${me ? me.rank : '-'}</b></div>
+            <div class="lb-home-sub">${esc(league.name)} · ${entries.length} gerçek hesap${me ? ` · Sıran: <b>#${me.rank}</b>` : ''}</div>
           </div>
         </div>
         <span class="lb-home-cta">Tümünü Gör ${icon('arrowRight', 14)}</span>
       </div>
       <div class="lb-home-mini-list">
-        ${top3.map((e, idx) => `
+        ${top3.length === 0 ? `
+          <div class="lb-mini-row">
+            <span class="lb-mini-name" style="color:var(--text3)">Henüz kayıtlı kullanıcı yok</span>
+          </div>
+        ` : top3.map((e, idx) => `
           <div class="lb-mini-row ${e.isMe ? 'me' : ''}">
             <span class="lb-mini-rank rank-${idx + 1}">#${e.rank}</span>
             <span class="lb-mini-avatar">${typeof getDonkeyAvatarSVG === 'function' ? getDonkeyAvatarSVG(e.avatar, 24) : ''}</span>
-            <span class="lb-mini-name">${esc(e.name)}</span>
+            <span class="lb-mini-name">${esc(e.name)}${e.isMe ? ' (Sen)' : ''}</span>
             <span class="lb-mini-val">${e.weeklyXP} XP</span>
           </div>
         `).join('')}
+        ${entries.length === 1 && me ? `
+          <div class="lb-mini-meta-bar">
+            <span>Toplam ${me.xp} XP</span>
+            <span>${me.learnedCount} kelime</span>
+            <span>${me.streak} gün seri</span>
+          </div>
+        ` : ''}
         ${meOutsideTop3 ? `
           <div class="lb-mini-divider"><span>${gapHint}</span></div>
           <div class="lb-mini-row me is-pinned">
@@ -1297,6 +1387,7 @@ function renderLeaderboardScreen() {
   const diffNeeded = ahead && me ? Math.max(1, (ahead[_lbMetric] || 0) - (me[_lbMetric] || 0) + 1) : 0;
 
   const p1 = entries[0], p2 = entries[1], p3 = entries[2];
+  const podiumOrder = entries.length >= 3 ? [p2, p1, p3] : entries.slice(0, 2);
   const rest = entries.slice(3);
 
   const branchLabel = e => {
@@ -1309,12 +1400,12 @@ function renderLeaderboardScreen() {
 
   s.innerHTML = `
     <div class="unit-header">
-      <button class="back-btn" onclick="goHome()" aria-label="Geri">${icon('arrowLeft', 18)}</button>
+      <button type="button" class="back-btn" onclick="goHome()" aria-label="Geri">${icon('arrowLeft', 18)}</button>
       <div>
         <div class="unit-title-h">${icon('trophy', 18)} Liderlik Tablosu</div>
-        <div class="unit-sub">Haftalık lig sıfırlanmasına ${_getDaysUntilMonday()} gün</div>
+        <div class="unit-sub">${entries.length} kayıtlı gerçek aday · Lig sıfırlanmasına ${_getDaysUntilMonday()} gün</div>
       </div>
-      <button class="profile-hdr-cta" onclick="openProfileOrAuth()">${me && !me.isGuest ? 'Profilim' : 'Kayıt Ol'}</button>
+      <button type="button" class="profile-hdr-cta" onclick="openProfileOrAuth()">Profilim</button>
     </div>
 
     <div class="lb-controls">
@@ -1323,8 +1414,8 @@ function renderLeaderboardScreen() {
           { id: 'weeklyXP', label: 'Haftalık XP' },
           { id: 'xp', label: 'Toplam XP' },
           { id: 'streak', label: 'Seri (Streak)' },
-          { id: 'learnedCount', label: 'Kelime' }
-        ].map(m => `<button class="lb-pill ${_lbMetric === m.id ? 'active' : ''}" onclick="setLeaderboardFilter('metric','${m.id}')">${m.label}</button>`).join('')}
+          { id: 'learnedCount', label: 'Öğrenilen Kelime' }
+        ].map(m => `<button type="button" class="lb-pill ${_lbMetric === m.id ? 'active' : ''}" onclick="setLeaderboardFilter('metric','${m.id}')">${m.label}</button>`).join('')}
       </div>
       <div class="lb-filter-row subtle">
         ${[
@@ -1334,7 +1425,7 @@ function renderLeaderboardScreen() {
           { id: 'YOKDIL_saglik', label: 'YÖKDİL Sağlık' },
           { id: 'YOKDIL_fen', label: 'YÖKDİL Fen' },
           { id: 'YOKDIL_sosyal', label: 'YÖKDİL Sosyal' }
-        ].map(f => `<button class="lb-chip ${_lbExamFilter === f.id ? 'active' : ''}" onclick="setLeaderboardFilter('exam','${f.id}')">${f.label}</button>`).join('')}
+        ].map(f => `<button type="button" class="lb-chip ${_lbExamFilter === f.id ? 'active' : ''}" onclick="setLeaderboardFilter('exam','${f.id}')">${f.label}</button>`).join('')}
       </div>
     </div>
 
@@ -1344,47 +1435,58 @@ function renderLeaderboardScreen() {
         <div style="flex:1">
           <div class="lb-league-name">${esc(league.name)}</div>
           <div class="lb-league-sub">
-            ${me ? `Mevcut Sıran: <b>#${me.rank}</b> / ${entries.length}` : 'Bu kategoride henüz kayıt yok'}
-            ${ahead ? ` · <b>${esc(ahead.name)}</b>’ı geçmek için +${diffNeeded} ${ _lbMetric === 'streak' ? 'gün' : _lbMetric === 'learnedCount' ? 'kelime' : 'XP' }` : ''}
+            ${me ? `Mevcut Sıran: <b>#${me.rank}</b> / ${entries.length}` : 'Bu sınav filtresinde kayıtlı hesap bulunmuyor'}
+            ${ahead ? ` · <b>${esc(ahead.name)}</b>’ı geçmek için +${diffNeeded} ${_lbMetric === 'streak' ? 'gün' : _lbMetric === 'learnedCount' ? 'kelime' : 'XP'}` : ''}
           </div>
         </div>
       </div>
 
-      ${entries.length === 0 ? `<div class="lb-empty">Bu filtrede aday bulunamadı.</div>` : `
-        <div class="lb-podium">
-          ${[p2, p1, p3].filter(Boolean).map(p => {
+      ${entries.length === 0 ? `<div class="lb-empty">Bu filtrede henüz kayıtlı gerçek aday yok.</div>` : `
+        <div class="lb-podium count-${Math.min(entries.length, 3)}">
+          ${podiumOrder.filter(Boolean).map(p => {
             const place = p.rank;
             return `
               <div class="lb-podium-card place-${place} ${p.isMe ? 'me' : ''}">
                 <div class="lb-podium-crown">${place === 1 ? icon('crown', 18) : '#' + place}</div>
                 <div class="lb-podium-avatar">${typeof getDonkeyAvatarSVG === 'function' ? getDonkeyAvatarSVG(p.avatar, place === 1 ? 56 : 44) : ''}</div>
-                <div class="lb-podium-name">${esc(p.name)}</div>
+                <div class="lb-podium-name">${esc(p.name)}${p.isMe ? ' (Sen)' : ''}</div>
                 <div class="lb-podium-tag">${esc(branchLabel(p))}</div>
                 <div class="lb-podium-score">${esc(_formatMetricVal(p, _lbMetric))}</div>
+                <div class="lb-podium-extra">${p.learnedCount} kelime · ${p.streak}g seri</div>
               </div>
             `;
           }).join('')}
         </div>
 
-        <div class="lb-list">
-          ${rest.map(e => `
-            <div class="lb-row ${e.isMe ? 'me' : ''}">
-              <div class="lb-row-rank">${e.rank}</div>
-              <div class="lb-row-avatar">${typeof getDonkeyAvatarSVG === 'function' ? getDonkeyAvatarSVG(e.avatar, 36) : ''}</div>
-              <div class="lb-row-info">
-                <div class="lb-row-name">${esc(e.name)} ${e.isMe ? '<span class="lb-me-badge">SEN</span>' : ''}</div>
-                <div class="lb-row-meta">${esc(branchLabel(e))} · Hedef ${e.examType === 'YDT' ? (e.targetYdtNet || 65) + ' Net' : (e.targetScore || 70) + ' Puan'} · ${icon('flame', 11)} ${e.streak}g</div>
+        ${rest.length > 0 ? `
+          <div class="lb-list">
+            ${rest.map(e => `
+              <div class="lb-row ${e.isMe ? 'me' : ''}">
+                <div class="lb-row-rank">${e.rank}</div>
+                <div class="lb-row-avatar">${typeof getDonkeyAvatarSVG === 'function' ? getDonkeyAvatarSVG(e.avatar, 36) : ''}</div>
+                <div class="lb-row-info">
+                  <div class="lb-row-name">${esc(e.name)} ${e.isMe ? '<span class="lb-me-badge">SEN</span>' : ''}</div>
+                  <div class="lb-row-meta">${esc(branchLabel(e))} · ${e.learnedCount} kelime · ${icon('flame', 11)} ${e.streak}g</div>
+                </div>
+                <div class="lb-row-score">${esc(_formatMetricVal(e, _lbMetric))}</div>
               </div>
-              <div class="lb-row-score">${esc(_formatMetricVal(e, _lbMetric))}</div>
-            </div>
-          `).join('')}
-        </div>
+            `).join('')}
+          </div>
+        ` : ''}
       `}
+
+      <div class="lb-real-note">
+        <div>
+          <strong>Gerçek Verilerle Canlı Sıralama</strong>
+          <p>Bu tablo yalnızca kayıtlı gerçek kullanıcıların kazandığı XP, seri ve öğrendiği kelime verilerinden oluşur; sahte veya yapay kullanıcı içermez.</p>
+        </div>
+        <button type="button" class="auth-btn-sec" onclick="openAuthModal('register')">${icon('plus', 14)} Yeni Hesap Ekle</button>
+      </div>
     </div>
 
     ${me ? `
       <div class="lb-sticky-me">
-        <span><b>#${me.rank}</b> ${esc(me.name)} ${me.isGuest ? '(Misafir)' : ''}</span>
+        <span><b>#${me.rank}</b> ${esc(me.name)}</span>
         <span class="lb-sticky-val">${esc(_formatMetricVal(me, _lbMetric))}</span>
       </div>
     ` : ''}
@@ -1400,6 +1502,9 @@ function initAuthAndProfile() {
   renderHeaderProfileChip();
   renderHomeLeaderboardCard();
 }
+
+window.isAuthenticated = isAuthenticated;
+window.enforceAuthGate = enforceAuthGate;
 
 window.ACADEMIC_ROLES = ACADEMIC_ROLES;
 window.YDT_TARGET_DEPARTMENTS = YDT_TARGET_DEPARTMENTS;

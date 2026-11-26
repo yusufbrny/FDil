@@ -76,7 +76,7 @@ function renderContinueBanner(book) {
     <div class="bookshelf-continue-card">
       <div class="bsc-top">
         <div class="bsc-title-wrap">
-          <span class="bsc-eyebrow">${icon('play', 11)} KALDIĞIN YERDEN DEVAM ET</span>
+          <span class="bsc-eyebrow"><span class="status-dot accent"></span>Kaldığın Yerden Devam Et</span>
           <div class="bsc-title">Ünite ${resumeUnit} · ${esc(firstWord)} — ${esc(lastWord)}</div>
           <div class="bsc-sub">${learned}/${total} kelime öğrenildi (%${pct})${errs > 0 ? ` · ${errs} hata` : ''}</div>
         </div>
@@ -104,9 +104,9 @@ function openUnitQuickMode(u, mode) {
   currentUnit = u;
   window._unitStudyFilter = 'all';
   if (mode === 'mc') {
-    startMC(UNITS[u].words, 'goHome()', `Ünite ${u} · Çoktan Seçmeli`);
+    startMC(UNITS[u].words.map(w => { const c = [...w]; c._unit = u; return c; }), 'goHome()', `Ünite ${u} · Çoktan Seçmeli`);
   } else {
-    startFlash(UNITS[u].words, { backFn: 'goHome()', title: `Ünite ${u} · Flash Kartlar` });
+    startFlash(UNITS[u].words.map(w => { const c = [...w]; c._unit = u; return c; }), { backFn: 'goHome()', title: `Ünite ${u} · Flash Kartlar` });
   }
 }
 
@@ -116,82 +116,86 @@ function renderBookshelf() {
 
   renderContinueBanner(BOOKS[0]);
 
-  let html = BOOKS.map(book => {
-    const stats = getBookStats(book);
-    return `
-      <button type="button" class="book-card" onclick="openBook('${escQ(book.id)}')" aria-label="${esc(book.title)} kitabını aç">
-        <div class="book-pages-edge">
-          <div class="book-cover">
-            <div class="book-spine"></div>
-            <div class="book-ribbon"></div>
-            <div class="book-cover-top">
-              <span class="book-badge">${icon('sparkles', 11)} ${esc(book.badge)}</span>
-              <div class="book-emblem">
-                <svg class="ui-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                  <path d="M9 7h7"/>
-                  <path d="M9 11h5"/>
-                </svg>
-              </div>
-            </div>
-            <div class="book-cover-body">
-              <div class="book-title">${esc(book.title)}</div>
-              <div class="book-subtitle">${esc(book.subtitle)} · ${stats.completedUnits}/${book.units.length} Ünite Tamam</div>
-            </div>
-            <div class="book-cover-footer">
-              <div class="book-meta-row">
-                <span>${stats.learnedWords}/${stats.totalWords} Kelime</span>
-                <span>%${stats.pct}</span>
-              </div>
-              <div class="book-progress-track">
-                <div class="book-progress-fill" style="width:${stats.pct}%"></div>
-              </div>
-              <div class="book-open-cta">
-                <span>Üniteleri Aç</span>
-                ${icon('arrowRight', 13)}
-              </div>
-            </div>
-          </div>
-        </div>
-      </button>`;
-  }).join('');
+  const weeklyStats = typeof getAllWeeklyStats === 'function'
+    ? getAllWeeklyStats()
+    : { weekCount: 1, totalWords: 200, learnedWords: 0, pct: 0 };
+  const activeWeek = typeof getAllWeeks === 'function' ? (getAllWeeks()[0] || null) : null;
+  const activeWeekLabel = activeWeek ? activeWeek.title : '1. Hafta';
 
+  const generalBook = BOOKS[0];
+  const generalStats = getBookStats(generalBook);
   const examStats = getExamBookStats();
-  html += `
-    <button type="button" class="book-card" onclick="showExamCoach('packs')" aria-label="YDT, YDS ve YÖKDİL Branş Kitapları">
-      <div class="book-pages-edge">
-        <div class="book-cover book-cover--exam">
-          <div class="book-spine"></div>
-          <div class="book-ribbon"></div>
-          <div class="book-cover-top">
-            <span class="book-badge">${icon('graduationCap', 11)} YDT · YDS · YÖKDİL</span>
-            <div class="book-emblem">
-              ${icon('target', 22)}
-            </div>
-          </div>
-          <div class="book-cover-body">
-            <div class="book-title">Sınav Branş Setleri</div>
-            <div class="book-subtitle">YDT (YKS-Dil) · Sağlık · Fen · Sosyal · YDS</div>
-          </div>
-          <div class="book-cover-footer">
-            <div class="book-meta-row">
-              <span>${examStats.packCount || 7} Özel Paket · ${examStats.totalWords || 165} Kelime</span>
-              <span>%${examStats.pct}</span>
-            </div>
-            <div class="book-progress-track">
-              <div class="book-progress-fill" style="width:${examStats.pct}%"></div>
-            </div>
-            <div class="book-open-cta">
-              <span>Paketleri &amp; Koçu Aç</span>
-              ${icon('arrowRight', 13)}
-            </div>
-          </div>
+
+  const cards = [
+    {
+      num: '01',
+      category: 'Haftalık Program',
+      title: 'Kelime Çalışma',
+      desc: `${activeWeekLabel} listesi ve hafta hafta çalışma setleri`,
+      meta: `${weeklyStats.weekCount} Hafta · ${weeklyStats.totalWords} Kelime`,
+      progressText: `${weeklyStats.learnedWords}/${weeklyStats.totalWords}`,
+      pct: weeklyStats.pct,
+      cta: 'Haftaları Aç',
+      tone: 'is-weekly',
+      iconName: 'calendar',
+      onclick: "showWeeklyVocab()"
+    },
+    {
+      num: '02',
+      category: 'Temel Müfredat',
+      title: generalBook.title,
+      desc: `${generalBook.subtitle} · ${generalStats.completedUnits}/${generalBook.units.length} ünite tamam`,
+      meta: `${generalBook.units.length} Ünite · ${generalStats.totalWords} Kelime`,
+      progressText: `${generalStats.learnedWords}/${generalStats.totalWords}`,
+      pct: generalStats.pct,
+      cta: 'Üniteleri Aç',
+      tone: 'is-core',
+      iconName: 'books',
+      onclick: `openBook('${escQ(generalBook.id)}')`
+    },
+    {
+      num: '03',
+      category: 'Sınav Branşları',
+      title: 'Sınav Branş Setleri',
+      desc: 'YDT (YKS-Dil), Sağlık, Fen, Sosyal ve YDS paketleri',
+      meta: `${examStats.packCount || 7} Paket · ${examStats.totalWords || 165} Kelime`,
+      progressText: `${examStats.learnedWords}/${examStats.totalWords}`,
+      pct: examStats.pct,
+      cta: 'Setleri İncele',
+      tone: 'is-exam',
+      iconName: 'graduationCap',
+      onclick: "showExamCoach('packs')"
+    }
+  ];
+
+  const countEl = document.getElementById('bookshelf-count-note');
+  if (countEl) countEl.textContent = `${cards.length} Çalışma Kaynağı`;
+
+  shelf.innerHTML = cards.map(c => `
+    <button type="button" class="book-card ${c.tone}" onclick="${c.onclick}" aria-label="${esc(c.title)}">
+      <div class="book-card-head">
+        <span class="book-card-index">${c.num} · ${esc(c.category)}</span>
+        <span class="book-card-icon">${icon(c.iconName, 17)}</span>
+      </div>
+      <div class="book-card-body">
+        <div class="book-title">${esc(c.title)}</div>
+        <div class="book-subtitle">${esc(c.desc)}</div>
+      </div>
+      <div class="book-card-foot">
+        <div class="book-meta-row">
+          <span class="book-meta-cap">${esc(c.meta)}</span>
+          <span class="book-meta-pct">%${c.pct}</span>
+        </div>
+        <div class="book-progress-track">
+          <div class="book-progress-fill" style="width:${c.pct}%"></div>
+        </div>
+        <div class="book-foot-row">
+          <span class="book-learned-txt">${esc(c.progressText)} öğrenildi</span>
+          <span class="book-open-link">${esc(c.cta)} ${icon('arrowRight', 13)}</span>
         </div>
       </div>
-    </button>`;
-
-  shelf.innerHTML = html;
+    </button>
+  `).join('');
 }
 
 function renderBookUnits(bookId) {
@@ -623,8 +627,10 @@ document.addEventListener('keydown', e => {
     if (typeof closeMetaEdit === 'function') closeMetaEdit();
     const goalOverlay = document.getElementById('gm-goal-modal');
     if (goalOverlay) goalOverlay.remove();
+    const wkModal = document.getElementById('wk-add-modal');
+    if (wkModal) wkModal.remove();
     const authOverlay = document.getElementById('auth-modal-overlay');
-    if (authOverlay) authOverlay.remove();
+    if (authOverlay && authOverlay.dataset.mandatory !== '1') authOverlay.remove();
     const srStatsModal = document.getElementById('sr-stats-modal');
     if (srStatsModal) srStatsModal.remove();
     const statsOverlay = document.getElementById('stats-overlay');
@@ -649,6 +655,11 @@ document.addEventListener('DOMContentLoaded', () => {
   updateMyWordsBadge();
   if (typeof _checkAchievements === 'function') _checkAchievements();
   if (typeof updatePWAInstallUI === 'function') updatePWAInstallUI();
+
+  if (typeof enforceAuthGate === 'function') {
+    const authed = enforceAuthGate();
+    if (!authed) return;
+  }
 
   if (!localStorage.getItem('ydt_onboarding_done') && typeof _showOnboarding === 'function') {
     setTimeout(() => _showOnboarding(), 800);
