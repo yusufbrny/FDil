@@ -5,8 +5,8 @@ const WEEKLY_VOCAB = [
   {
     id: 'week-1',
     week: 1,
-    title: '1. Hafta',
-    subtitle: 'Akademik & YDT Kelime Listesi',
+    title: 'Week 1',
+    subtitle: 'Bu Haftanın Kelimeleri · 2 Liste',
     dateLabel: 'Bu Hafta',
     sets: [
       {

@@ -116,12 +116,6 @@ function renderBookshelf() {
 
   renderContinueBanner(BOOKS[0]);
 
-  const weeklyStats = typeof getAllWeeklyStats === 'function'
-    ? getAllWeeklyStats()
-    : { weekCount: 1, totalWords: 200, learnedWords: 0, pct: 0 };
-  const activeWeek = typeof getAllWeeks === 'function' ? (getAllWeeks()[0] || null) : null;
-  const activeWeekLabel = activeWeek ? activeWeek.title : '1. Hafta';
-
   const generalBook = BOOKS[0];
   const generalStats = getBookStats(generalBook);
   const examStats = getExamBookStats();
@@ -129,19 +123,6 @@ function renderBookshelf() {
   const cards = [
     {
       num: '01',
-      category: 'Haftalık Program',
-      title: 'Kelime Çalışma',
-      desc: `${activeWeekLabel} listesi ve hafta hafta çalışma setleri`,
-      meta: `${weeklyStats.weekCount} Hafta · ${weeklyStats.totalWords} Kelime`,
-      progressText: `${weeklyStats.learnedWords}/${weeklyStats.totalWords}`,
-      pct: weeklyStats.pct,
-      cta: 'Haftaları Aç',
-      tone: 'is-weekly',
-      iconName: 'calendar',
-      onclick: "showWeeklyVocab()"
-    },
-    {
-      num: '02',
       category: 'Temel Müfredat',
       title: generalBook.title,
       desc: `${generalBook.subtitle} · ${generalStats.completedUnits}/${generalBook.units.length} ünite tamam`,
@@ -154,7 +135,7 @@ function renderBookshelf() {
       onclick: `openBook('${escQ(generalBook.id)}')`
     },
     {
-      num: '03',
+      num: '02',
       category: 'Sınav Branşları',
       title: 'Sınav Branş Setleri',
       desc: 'YDT (YKS-Dil), Sağlık, Fen, Sosyal ve YDS paketleri',
@@ -169,7 +150,7 @@ function renderBookshelf() {
   ];
 
   const countEl = document.getElementById('bookshelf-count-note');
-  if (countEl) countEl.textContent = `${cards.length} Çalışma Kaynağı`;
+  if (countEl) countEl.textContent = `${cards.length} Kitap`;
 
   shelf.innerHTML = cards.map(c => `
     <button type="button" class="book-card ${c.tone}" onclick="${c.onclick}" aria-label="${esc(c.title)}">
@@ -407,6 +388,7 @@ function updateHomeToolsMeta() {
 }
 
 function renderHome() {
+  if (typeof renderHomeWeeklySection === 'function') renderHomeWeeklySection();
   renderBookshelf();
   const shelfSection = document.getElementById('bookshelf-section');
   const unitsSection = document.getElementById('book-units-section');

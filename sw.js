@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fdil-v10';
+const CACHE_NAME = 'fdil-v11';
 const STATIC_ASSETS = [
   './',
   './index.html',

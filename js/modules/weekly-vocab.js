@@ -429,6 +429,72 @@ function renderWeeklyVocab() {
   _renderWeeklyListBody();
 }
 
+function startWeeklyQuickFromHome(weekId, mode) {
+  _activeWeekId = weekId;
+  _activeWeekSetId = 'all';
+  _weeklyStatusFilter = 'all';
+  if (mode === 'open') {
+    showWeeklyVocab(weekId);
+    return;
+  }
+  const week = getWeekById(weekId);
+  if (!week) return;
+  const cards = _buildWeeklyStudyCards(week, 'all', false);
+  if (cards.length === 0) { showToast('Çalışılacak kelime bulunamadı.'); return; }
+  const pool = shuffle(cards).slice(0, 25);
+  if (mode === 'flash') {
+    startFlash(pool, { backFn: 'goHome()', title: `${week.title} · Flash Kartlar`, unitTagFn: () => week.title });
+  } else if (mode === 'mc') {
+    startMC(pool, 'goHome()', `${week.title} · Çoktan Seçmeli`);
+  } else if (mode === 'speed') {
+    startSpeedMode(pool, 'goHome()', `${week.title} · Hız Modu`);
+  }
+}
+
+function renderHomeWeeklySection() {
+  const sec = document.getElementById('weekly-home-section');
+  if (!sec) return;
+  const weeks = getAllWeeks();
+  const totalStats = getAllWeeklyStats();
+
+  sec.innerHTML = `
+    <div class="section-header-row">
+      <span class="section-label">Kelime Çalışma · Haftalık</span>
+      <div class="wk-home-head-right">
+        <span class="bookshelf-count-note">${weeks.length} Hafta · ${totalStats.learnedWords}/${totalStats.totalWords}</span>
+        <button type="button" class="wk-home-add-btn" onclick="openAddWeekModal()">${icon('plus', 13)} Hafta Ekle</button>
+      </div>
+    </div>
+    <div class="wk-home-grid count-${Math.min(weeks.length, 3)}">
+      ${weeks.map((w, idx) => {
+        const st = getWeekStats(w.id);
+        const listSummary = (w.sets || []).map(s => `${s.label} (${s.words.length})`).join(' · ');
+        return `
+          <div class="wk-home-card" onclick="showWeeklyVocab('${escQ(w.id)}')">
+            <div class="wk-home-card-top">
+              <div>
+                <div class="wk-home-eyebrow"><span class="status-dot accent"></span>${esc(w.dateLabel || `Week ${idx + 1}`)}</div>
+                <div class="wk-home-title">${esc(w.title)}</div>
+                <div class="wk-home-sub">${esc(listSummary || w.subtitle || '')}</div>
+              </div>
+              <div class="wk-home-pct-wrap">
+                <span class="wk-home-pct">%${st.pct}</span>
+                <span class="wk-home-ratio">${st.learned}/${st.uniqueTotal}</span>
+              </div>
+            </div>
+            <div class="wk-progress-track"><div class="wk-progress-fill" style="width:${st.pct}%"></div></div>
+            <div class="wk-home-actions" onclick="event.stopPropagation()">
+              <button type="button" class="wk-home-act primary" onclick="showWeeklyVocab('${escQ(w.id)}')">${icon('bookOpen', 13)} Kelimeler (${st.total})</button>
+              <button type="button" class="wk-home-act" onclick="startWeeklyQuickFromHome('${escQ(w.id)}','flash')">${icon('layers', 13)} Flash</button>
+              <button type="button" class="wk-home-act" onclick="startWeeklyQuickFromHome('${escQ(w.id)}','mc')">${icon('checkCircle', 13)} Test</button>
+              <button type="button" class="wk-home-act" onclick="startWeeklyQuickFromHome('${escQ(w.id)}','speed')">${icon('timer', 13)} Hız</button>
+            </div>
+          </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
 function openAddWeekModal() {
   const old = document.getElementById('wk-add-modal');
   if (old) old.remove();
@@ -449,7 +515,7 @@ function openAddWeekModal() {
         <div class="auth-row-2">
           <div class="auth-field">
             <label>Hafta Başlığı</label>
-            <input id="wk-new-title" type="text" value="${nextNum}. Hafta" required>
+            <input id="wk-new-title" type="text" value="Week ${nextNum}" required>
           </div>
           <div class="auth-field">
             <label>Alt Başlık</label>
@@ -506,7 +572,9 @@ function submitNewWeekModal() {
   _activeWeekId = newId;
   _activeWeekSetId = 'all';
   _weeklyStatusFilter = 'all';
-  renderWeeklyVocab();
+  if (typeof renderHomeWeeklySection === 'function') renderHomeWeeklySection();
+  const weeklyScreen = document.getElementById('screen-weekly');
+  if (weeklyScreen && weeklyScreen.classList.contains('active')) renderWeeklyVocab();
   showToast(`${title} (${words.length} kelime) eklendi!`);
 }
 
@@ -519,6 +587,8 @@ window.getAllWeeklyStats = getAllWeeklyStats;
 window.getAllWeeklyWordsFlat = getAllWeeklyWordsFlat;
 window.isWeeklyWordLearned = isWeeklyWordLearned;
 window.markWeeklyWordLearned = markWeeklyWordLearned;
+window.renderHomeWeeklySection = renderHomeWeeklySection;
+window.startWeeklyQuickFromHome = startWeeklyQuickFromHome;
 window.showWeeklyVocab = showWeeklyVocab;
 window.selectWeeklyWeek = selectWeeklyWeek;
 window.selectWeeklySet = selectWeeklySet;
