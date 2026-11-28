@@ -4,6 +4,9 @@ function showScreen(id, direction = 'forward') {
   if (id !== 'screen-speed' && typeof _clearSpeedTimer === 'function') {
     _clearSpeedTimer();
   }
+  if (id !== 'screen-weekly-drill' && typeof _cleanupWeeklyDrill === 'function') {
+    _cleanupWeeklyDrill();
+  }
   const quizScreens = ['screen-mc', 'screen-fib', 'screen-syn-quiz', 'screen-ant-quiz', 'screen-speed'];
   if (!quizScreens.includes(id) && typeof _clearQuizTimer === 'function') {
     _clearQuizTimer();

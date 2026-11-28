@@ -105,6 +105,9 @@ function _bindQuizKeys() {
   if (_quizKeyBound) return;
   _quizKeyBound = true;
   document.addEventListener('keydown', e => {
+    if (e.target && (e.target.isContentEditable || (e.target.closest && e.target.closest('#nb-drawer')))) return;
+    const nbDrawer = document.getElementById('nb-drawer');
+    if (nbDrawer && nbDrawer.classList.contains('is-fullscreen')) return;
     const tag = (e.target && e.target.tagName) || '';
     if (document.querySelector('.word-modal-overlay[style*="flex"], .stats-overlay[style*="flex"], #gm-goal-modal, #auth-modal-overlay')) return;
 

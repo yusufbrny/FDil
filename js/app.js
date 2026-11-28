@@ -592,6 +592,7 @@ function toggleTheme() {
   document.documentElement.classList.add(isDark ? 'dark' : 'light');
   localStorage.setItem('ydt_theme', isDark ? 'dark' : 'light');
   updateThemeBtn(isDark);
+  window.dispatchEvent(new CustomEvent('fdil-theme-change', { detail: { isDark } }));
 }
 
 function updateThemeBtn(isDark) {
@@ -605,6 +606,7 @@ function updateThemeBtn(isDark) {
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
+    if (typeof handleNotebookEscape === 'function' && handleNotebookEscape()) return;
     closeWordModal();
     if (typeof closeMetaEdit === 'function') closeMetaEdit();
     const goalOverlay = document.getElementById('gm-goal-modal');
@@ -635,6 +637,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (typeof _renderQuestsInHome === 'function') _renderQuestsInHome();
   updateErrorBadge();
   updateMyWordsBadge();
+  if (typeof initNotebook === 'function') initNotebook();
   if (typeof _checkAchievements === 'function') _checkAchievements();
   if (typeof updatePWAInstallUI === 'function') updatePWAInstallUI();
 

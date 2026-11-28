@@ -1,7 +1,8 @@
-// Weekly Vocabulary Study Module — week-by-week lists, self-test concealment, Flash, MC & Speed drills
+// Weekly Vocabulary Study Module — customizable study counts, ordering, self-test concealment, and 8 study techniques
 
 const WEEKLY_PROGRESS_KEY = 'fdil_weekly_progress_v1';
 const WEEKLY_CUSTOM_KEY = 'fdil_weekly_custom_v1';
+const WEEKLY_PREFS_KEY = 'fdil_weekly_study_prefs_v1';
 
 let weeklyProgress = (() => {
   try { return JSON.parse(localStorage.getItem(WEEKLY_PROGRESS_KEY) || '{}'); }
@@ -11,6 +12,17 @@ let weeklyProgress = (() => {
 let _customWeeks = (() => {
   try { return JSON.parse(localStorage.getItem(WEEKLY_CUSTOM_KEY) || '[]'); }
   catch (e) { return []; }
+})();
+
+let _weeklyStudyPrefs = (() => {
+  try {
+    const raw = JSON.parse(localStorage.getItem(WEEKLY_PREFS_KEY) || '{}');
+    const count = Number.isFinite(Number(raw.count)) && Number(raw.count) >= 0 ? Math.floor(Number(raw.count)) : 20;
+    const order = ['shuffle', 'sequential', 'priority'].includes(raw.order) ? raw.order : 'shuffle';
+    return { count, order };
+  } catch (e) {
+    return { count: 20, order: 'shuffle' };
+  }
 })();
 
 let _activeWeekId = 'week-1';
@@ -30,6 +42,72 @@ function saveWeeklyProgress() {
 
 function _saveCustomWeeks() {
   try { localStorage.setItem(WEEKLY_CUSTOM_KEY, JSON.stringify(_customWeeks)); } catch (e) { }
+}
+
+function _saveWeeklyPrefs() {
+  try { localStorage.setItem(WEEKLY_PREFS_KEY, JSON.stringify(_weeklyStudyPrefs)); } catch (e) { }
+}
+
+function getWeeklyStudyPrefs() {
+  return { count: _weeklyStudyPrefs.count, order: _weeklyStudyPrefs.order };
+}
+
+function setWeeklyStudyCount(val) {
+  const n = Math.floor(Number(val));
+  if (!Number.isFinite(n) || n < 0) return;
+  _weeklyStudyPrefs.count = n === 0 ? 0 : Math.min(500, Math.max(1, n));
+  _saveWeeklyPrefs();
+  _refreshWeeklyConfigUI();
+}
+
+function setWeeklyStudyOrder(order) {
+  if (!['shuffle', 'sequential', 'priority'].includes(order)) return;
+  _weeklyStudyPrefs.order = order;
+  _saveWeeklyPrefs();
+  _refreshWeeklyConfigUI();
+}
+
+function _onCustomCountInput(rawVal) {
+  const trimmed = String(rawVal || '').trim();
+  if (!trimmed) return;
+  const n = Math.floor(Number(trimmed));
+  if (!Number.isFinite(n) || n < 1) return;
+  _weeklyStudyPrefs.count = Math.min(500, n);
+  _saveWeeklyPrefs();
+  _refreshWeeklyConfigUI(true);
+}
+
+function _refreshWeeklyConfigUI(keepInputFocus = false) {
+  const week = getWeekById(_activeWeekId);
+  if (!week) return;
+  const available = _buildWeeklyStudyCards(week, _activeWeekSetId, _weeklyStatusFilter).length
+    || _buildWeeklyStudyCards(week, _activeWeekSetId, 'all').length;
+  const prefs = getWeeklyStudyPrefs();
+  const effective = prefs.count === 0 ? available : Math.min(prefs.count, available);
+  const countLabel = prefs.count === 0 ? `Tümü (${available})` : `${effective}`;
+
+  document.querySelectorAll('.wk-count-pill[data-wcount]').forEach(btn => {
+    const v = Number(btn.dataset.wcount);
+    btn.classList.toggle('active', v === prefs.count);
+  });
+
+  document.querySelectorAll('.wk-order-pill[data-worder]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.worder === prefs.order);
+  });
+
+  const inp = document.getElementById('wk-custom-count-inp');
+  if (inp && !keepInputFocus) {
+    inp.value = prefs.count > 0 ? String(prefs.count) : '';
+  }
+
+  const summary = document.getElementById('wk-config-summary');
+  if (summary) {
+    summary.textContent = `Havuz: ${available} kelime · Seçili: ${effective}`;
+  }
+
+  document.querySelectorAll('.wk-tech-count').forEach(el => {
+    el.textContent = countLabel;
+  });
 }
 
 function getAllWeeks() {
@@ -139,15 +217,19 @@ function getAllWeeklyWordsFlat() {
   return out;
 }
 
-function _buildWeeklyStudyCards(week, setId, onlyUnlearned = false) {
+function _buildWeeklyStudyCards(week, setId, statusFilter = 'all') {
   const rows = getWeekWords(week, setId);
   const learnedSet = getWeekLearnedSet(week.id);
   const seen = new Set();
   const cards = [];
+  const filterMode = statusFilter === true ? 'unlearned' : (statusFilter || 'all');
+
   rows.forEach(r => {
     const norm = _normWeeklyWord(r.en);
     if (seen.has(norm)) return;
-    if (onlyUnlearned && learnedSet.has(norm)) return;
+    const isLearned = learnedSet.has(norm);
+    if (filterMode === 'unlearned' && isLearned) return;
+    if (filterMode === 'learned' && !isLearned) return;
     seen.add(norm);
     const card = [r.en, r.tr, ''];
     card._weekId = week.id;
@@ -155,6 +237,51 @@ function _buildWeeklyStudyCards(week, setId, onlyUnlearned = false) {
     cards.push(card);
   });
   return cards;
+}
+
+function _buildOrderedWeeklyPool(week, setId, countOverride = null, orderOverride = null, statusFilter = 'all', quiet = false) {
+  let cards = _buildWeeklyStudyCards(week, setId, statusFilter);
+  if (cards.length === 0 && statusFilter !== 'all') {
+    cards = _buildWeeklyStudyCards(week, setId, 'all');
+    if (!quiet && cards.length > 0 && typeof showToast === 'function') {
+      showToast(statusFilter === 'unlearned'
+        ? 'Bu bölümdeki tüm kelimeleri öğrendin! Tümü yükleniyor.'
+        : 'Öğrenilen kelime bulunamadı, tüm liste yükleniyor.');
+    }
+  }
+  if (cards.length === 0) return [];
+
+  const order = orderOverride || _weeklyStudyPrefs.order || 'shuffle';
+  let ordered;
+
+  if (order === 'sequential') {
+    ordered = [...cards];
+  } else if (order === 'priority') {
+    const learnedSet = getWeekLearnedSet(week.id);
+    const errMap = (typeof errorBox !== 'undefined' && errorBox) ? errorBox : {};
+    const errorWords = new Set(Object.keys(errMap).map(_normWeeklyWord));
+    const tierError = [];
+    const tierUnlearned = [];
+    const tierLearned = [];
+    cards.forEach(c => {
+      const k = _normWeeklyWord(c[0]);
+      if (errorWords.has(k)) tierError.push(c);
+      else if (!learnedSet.has(k)) tierUnlearned.push(c);
+      else tierLearned.push(c);
+    });
+    ordered = [...shuffle(tierError), ...shuffle(tierUnlearned), ...shuffle(tierLearned)];
+  } else {
+    ordered = shuffle(cards);
+  }
+
+  const limit = countOverride !== null && countOverride !== undefined
+    ? Number(countOverride)
+    : _weeklyStudyPrefs.count;
+
+  if (limit > 0 && ordered.length > limit) {
+    return ordered.slice(0, limit);
+  }
+  return ordered;
 }
 
 function showWeeklyVocab(weekId) {
@@ -230,29 +357,20 @@ function speakWeeklyRow(weekId, rowIdx) {
   if (row && row.en && typeof speakWord === 'function') speakWord(row.en);
 }
 
-function startWeeklyMode(mode, countLimit = 0) {
+function startWeeklyMode(mode, countOverride = null) {
   const week = getWeekById(_activeWeekId);
   if (!week) return;
-  const preferUnlearned = _weeklyStatusFilter === 'unlearned';
-  let cards = _buildWeeklyStudyCards(week, _activeWeekSetId, preferUnlearned);
-  if (cards.length === 0) {
-    cards = _buildWeeklyStudyCards(week, _activeWeekSetId, false);
-    if (cards.length > 0 && preferUnlearned) {
-      showToast('Bu bölümdeki tüm kelimeleri öğrendin! Tümü yükleniyor.');
-    }
-  }
-  if (cards.length === 0) {
+
+  const pool = _buildOrderedWeeklyPool(week, _activeWeekSetId, countOverride, null, _weeklyStatusFilter, false);
+  if (pool.length === 0) {
     showToast('Çalışılacak kelime bulunamadı.');
     return;
   }
 
+  const allWeekWords = _buildWeeklyStudyCards(week, 'all', 'all');
   const activeSet = (week.sets || []).find(s => s.id === _activeWeekSetId);
   const scopeTitle = activeSet ? `${week.title} · ${activeSet.label}` : week.title;
   const backExpr = `showWeeklyVocab('${week.id}')`;
-  let pool = shuffle(cards);
-  if (countLimit > 0 && pool.length > countLimit) {
-    pool = pool.slice(0, countLimit);
-  }
 
   if (mode === 'flash') {
     startFlash(pool, {
@@ -263,7 +381,17 @@ function startWeeklyMode(mode, countLimit = 0) {
   } else if (mode === 'mc') {
     startMC(pool, backExpr, `${scopeTitle} · Çoktan Seçmeli`);
   } else if (mode === 'speed') {
-    startSpeedMode(pool.slice(0, 25), backExpr, `${scopeTitle} · Hız Modu`);
+    startSpeedMode(pool, backExpr, `${scopeTitle} · Hız Modu`);
+  } else if (mode === 'reverse' && typeof startWeeklyReverseQuiz === 'function') {
+    startWeeklyReverseQuiz(pool, allWeekWords, backExpr, `${scopeTitle} · Ters Test (TR → EN)`, week.id);
+  } else if (mode === 'write' && typeof startWeeklyWriteDrill === 'function') {
+    startWeeklyWriteDrill(pool, allWeekWords, backExpr, `${scopeTitle} · Yazarak Öğren`, week.id);
+  } else if (mode === 'match' && typeof startWeeklyMatchDrill === 'function') {
+    startWeeklyMatchDrill(pool, allWeekWords, backExpr, `${scopeTitle} · Eşleştirme`, week.id);
+  } else if (mode === 'listen' && typeof startWeeklyListenDrill === 'function') {
+    startWeeklyListenDrill(pool, allWeekWords, backExpr, `${scopeTitle} · Dinle & Bil`, week.id);
+  } else if (mode === 'mastery' && typeof startWeeklyMasteryDrill === 'function') {
+    startWeeklyMasteryDrill(pool, allWeekWords, backExpr, `${scopeTitle} · Ustalık Döngüsü`, week.id);
   }
 }
 
@@ -342,6 +470,32 @@ function renderWeeklyVocab() {
   uniqueInSet.forEach(w => { if (learnedSet.has(w)) learnedInSet++; });
   const unlearnedInSet = Math.max(0, uniqueInSet.size - learnedInSet);
 
+  const prefs = getWeeklyStudyPrefs();
+  const availablePoolLen = _buildWeeklyStudyCards(week, _activeWeekSetId, _weeklyStatusFilter).length
+    || uniqueInSet.size;
+  const effectiveCount = prefs.count === 0 ? availablePoolLen : Math.min(prefs.count, availablePoolLen);
+  const countBadgeTxt = prefs.count === 0 ? `Tümü (${availablePoolLen})` : `${effectiveCount}`;
+
+  const presets = [
+    { val: 10, label: '10' },
+    { val: 15, label: '15' },
+    { val: 20, label: '20' },
+    { val: 25, label: '25' },
+    { val: 50, label: '50' },
+    { val: 0, label: 'Tümü' }
+  ];
+
+  const techniques = [
+    { id: 'flash', title: 'Flash Kartlar', desc: '3D kart & sağa/sola kaydırma', ic: 'layers', tone: 'primary' },
+    { id: 'mc', title: 'Test (EN → TR)', desc: '4 şıklı anlam tanıma', ic: 'checkCircle', tone: 'teal' },
+    { id: 'reverse', title: 'Ters Test (TR → EN)', desc: 'Türkçe’den İngilizce’ye aktif seçim', ic: 'repeat', tone: 'blue' },
+    { id: 'write', title: 'Yazarak Öğren', desc: 'Aktif hatırlama, harf & ses ipucu', ic: 'penLine', tone: 'amber' },
+    { id: 'match', title: 'Eşleştirme', desc: '5’li gruplarla hızlı hafıza oyunu', ic: 'grid', tone: 'teal' },
+    { id: 'listen', title: 'Dinle & Bil', desc: 'Sesli telaffuz & dikte çalışması', ic: 'volume', tone: 'blue' },
+    { id: 'mastery', title: 'Ustalık Döngüsü', desc: 'Yanlışı tekrar soran 2 aşamalı sistem', ic: 'brain', tone: 'green' },
+    { id: 'speed', title: 'Hız Modu', desc: '10 sn zamana karşı seri', ic: 'timer', tone: 'red' }
+  ];
+
   s.innerHTML = `
     <div class="unit-header">
       <button type="button" class="back-btn" onclick="goHome()" aria-label="Geri">${icon('arrowLeft', 18)}</button>
@@ -376,19 +530,44 @@ function renderWeeklyVocab() {
           <div class="wk-overview-pct">%${st.pct}</div>
         </div>
         <div class="wk-progress-track"><div class="wk-progress-fill" style="width:${st.pct}%"></div></div>
-        <div class="wk-practice-bar">
-          <button type="button" class="wk-mode-btn primary" onclick="startWeeklyMode('flash', 25)">
-            ${icon('layers', 15)} <span>Flash Kart (25)</span>
-          </button>
-          <button type="button" class="wk-mode-btn" onclick="startWeeklyMode('mc', 25)">
-            ${icon('checkCircle', 15)} <span>Test Çöz (25)</span>
-          </button>
-          <button type="button" class="wk-mode-btn" onclick="startWeeklyMode('mc', 0)">
-            ${icon('listChecks', 15)} <span>Tam Test</span>
-          </button>
-          <button type="button" class="wk-mode-btn" onclick="startWeeklyMode('speed', 25)">
-            ${icon('timer', 15)} <span>Hız Modu</span>
-          </button>
+
+        <div class="wk-config-box">
+          <div class="wk-config-head">
+            <span class="wk-config-title">${icon('sliders', 13)} Çalışma Ayarları</span>
+            <span class="wk-config-summary" id="wk-config-summary">Havuz: ${availablePoolLen} kelime · Seçili: ${effectiveCount}</span>
+          </div>
+          <div class="wk-count-row">
+            <span class="wk-config-lbl">Soru Sayısı:</span>
+            <div class="wk-count-pills">
+              ${presets.map(p => `
+                <button type="button" class="wk-count-pill ${prefs.count === p.val ? 'active' : ''}" data-wcount="${p.val}" onclick="setWeeklyStudyCount(${p.val})">${p.label}</button>
+              `).join('')}
+              <label class="wk-custom-count-wrap" title="Özel sayı gir">
+                <input type="number" id="wk-custom-count-inp" class="wk-custom-count-inp" min="1" max="500" placeholder="Özel" value="${prefs.count > 0 ? prefs.count : ''}" oninput="_onCustomCountInput(this.value)" onchange="_onCustomCountInput(this.value)" aria-label="Özel soru sayısı">
+              </label>
+            </div>
+          </div>
+          <div class="wk-order-row">
+            <span class="wk-config-lbl">Sıra:</span>
+            <div class="wk-order-pills">
+              <button type="button" class="wk-order-pill ${prefs.order === 'shuffle' ? 'active' : ''}" data-worder="shuffle" onclick="setWeeklyStudyOrder('shuffle')">${icon('shuffle', 12)} Karışık</button>
+              <button type="button" class="wk-order-pill ${prefs.order === 'sequential' ? 'active' : ''}" data-worder="sequential" onclick="setWeeklyStudyOrder('sequential')">${icon('listOrdered', 12)} Sıralı</button>
+              <button type="button" class="wk-order-pill ${prefs.order === 'priority' ? 'active' : ''}" data-worder="priority" onclick="setWeeklyStudyOrder('priority')">${icon('target', 12)} Zor &amp; Öğrenilmemiş Önce</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="wk-practice-grid">
+          ${techniques.map(t => `
+            <button type="button" class="wk-tech-card is-${t.tone}" onclick="startWeeklyMode('${t.id}')">
+              <div class="wk-tech-top">
+                <span class="wk-tech-icon">${icon(t.ic, 16)}</span>
+                <span class="wk-tech-count">${esc(countBadgeTxt)}</span>
+              </div>
+              <div class="wk-tech-title">${t.title}</div>
+              <div class="wk-tech-desc">${t.desc}</div>
+            </button>
+          `).join('')}
         </div>
       </div>
 
@@ -439,15 +618,18 @@ function startWeeklyQuickFromHome(weekId, mode) {
   }
   const week = getWeekById(weekId);
   if (!week) return;
-  const cards = _buildWeeklyStudyCards(week, 'all', false);
-  if (cards.length === 0) { showToast('Çalışılacak kelime bulunamadı.'); return; }
-  const pool = shuffle(cards).slice(0, 25);
+  const pool = _buildOrderedWeeklyPool(week, 'all', null, null, 'all', true);
+  if (pool.length === 0) { showToast('Çalışılacak kelime bulunamadı.'); return; }
+  const allWeekWords = _buildWeeklyStudyCards(week, 'all', 'all');
+
   if (mode === 'flash') {
     startFlash(pool, { backFn: 'goHome()', title: `${week.title} · Flash Kartlar`, unitTagFn: () => week.title });
   } else if (mode === 'mc') {
     startMC(pool, 'goHome()', `${week.title} · Çoktan Seçmeli`);
   } else if (mode === 'speed') {
     startSpeedMode(pool, 'goHome()', `${week.title} · Hız Modu`);
+  } else if (mode === 'mastery' && typeof startWeeklyMasteryDrill === 'function') {
+    startWeeklyMasteryDrill(pool, allWeekWords, 'goHome()', `${week.title} · Ustalık Döngüsü`, week.id);
   }
 }
 
@@ -456,6 +638,8 @@ function renderHomeWeeklySection() {
   if (!sec) return;
   const weeks = getAllWeeks();
   const totalStats = getAllWeeklyStats();
+  const prefs = getWeeklyStudyPrefs();
+  const countTxt = prefs.count === 0 ? 'Tümü' : String(prefs.count);
 
   sec.innerHTML = `
     <div class="section-header-row">
@@ -485,8 +669,8 @@ function renderHomeWeeklySection() {
             <div class="wk-progress-track"><div class="wk-progress-fill" style="width:${st.pct}%"></div></div>
             <div class="wk-home-actions" onclick="event.stopPropagation()">
               <button type="button" class="wk-home-act primary" onclick="showWeeklyVocab('${escQ(w.id)}')">${icon('bookOpen', 13)} Kelimeler (${st.total})</button>
-              <button type="button" class="wk-home-act" onclick="startWeeklyQuickFromHome('${escQ(w.id)}','flash')">${icon('layers', 13)} Flash</button>
-              <button type="button" class="wk-home-act" onclick="startWeeklyQuickFromHome('${escQ(w.id)}','mc')">${icon('checkCircle', 13)} Test</button>
+              <button type="button" class="wk-home-act" onclick="startWeeklyQuickFromHome('${escQ(w.id)}','flash')">${icon('layers', 13)} Flash (${esc(countTxt)})</button>
+              <button type="button" class="wk-home-act" onclick="startWeeklyQuickFromHome('${escQ(w.id)}','mc')">${icon('checkCircle', 13)} Test (${esc(countTxt)})</button>
               <button type="button" class="wk-home-act" onclick="startWeeklyQuickFromHome('${escQ(w.id)}','speed')">${icon('timer', 13)} Hız</button>
             </div>
           </div>`;
@@ -580,6 +764,11 @@ function submitNewWeekModal() {
 
 window.weeklyProgress = weeklyProgress;
 window.saveWeeklyProgress = saveWeeklyProgress;
+window.getWeeklyStudyPrefs = getWeeklyStudyPrefs;
+window.setWeeklyStudyCount = setWeeklyStudyCount;
+window.setWeeklyStudyOrder = setWeeklyStudyOrder;
+window._onCustomCountInput = _onCustomCountInput;
+window._buildOrderedWeeklyPool = _buildOrderedWeeklyPool;
 window.getAllWeeks = getAllWeeks;
 window.getWeekById = getWeekById;
 window.getWeekStats = getWeekStats;

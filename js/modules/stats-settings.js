@@ -249,6 +249,7 @@ function exportAllData() {
     dictHistory: dictHistory,
     streakFreeze: _streakFreezeAvailable,
     streakFreezeUsed: _streakFreezeUsed,
+    notebook: typeof exportNotebookData === 'function' ? exportNotebookData() : null
   };
 
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -282,6 +283,7 @@ function importData(file) {
       if (data.dictHistory) { dictHistory = data.dictHistory; _saveDictHistory(); }
       if (data.streakFreeze !== undefined) { _streakFreezeAvailable = data.streakFreeze; localStorage.setItem('ydt_streak_freeze', _streakFreezeAvailable); }
       if (data.streakFreezeUsed !== undefined) { _streakFreezeUsed = data.streakFreezeUsed; localStorage.setItem('ydt_streak_freeze_used', _streakFreezeUsed); }
+      if (data.notebook && typeof importNotebookData === 'function') { importNotebookData(data.notebook); }
 
       _renderHUD();
       renderHome();

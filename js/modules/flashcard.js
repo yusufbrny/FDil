@@ -15,6 +15,9 @@ function _bindFlashKeys() {
   if (_fcKeyListenerBound) return;
   _fcKeyListenerBound = true;
   document.addEventListener('keydown', e => {
+    if (e.target && (e.target.isContentEditable || (e.target.closest && e.target.closest('#nb-drawer')))) return;
+    const nbDrawer = document.getElementById('nb-drawer');
+    if (nbDrawer && nbDrawer.classList.contains('is-fullscreen')) return;
     const screen = document.getElementById('screen-flash');
     if (!screen || !screen.classList.contains('active')) return;
     const tag = (e.target && e.target.tagName) || '';
