@@ -259,6 +259,8 @@
       this.lineKind = 'arrow';
       this.eraserMode = 'object'; // 'object' | 'partial'
       this.gridSnap = false;
+      this.stylusOnly = !!this.options.stylusOnly;
+      this.scrollContainer = this.options.scrollContainer || null;
 
       this.props = {
         strokeColor: 'auto',
@@ -283,6 +285,9 @@
 
       this.activePointers = new Map();
       this.pinchState = null;
+      this._twoFingerScroll = null;
+      this._touchScrollDrag = null;
+      this._lastPointerWasTouch = false;
       this.dragState = null;
       this.spacePanning = false;
       this.editingObjId = null;
@@ -410,6 +415,23 @@
     setGridSnap(enabled) {
       this.gridSnap = !!enabled;
       this._notifyPageMeta();
+    }
+
+    setStylusOnly(enabled) {
+      this.stylusOnly = !!enabled;
+      this._notifyPageMeta();
+    }
+
+    editSelectedText() {
+      if (this.selectedIds.size !== 1) return false;
+      const id = Array.from(this.selectedIds)[0];
+      const obj = this._findObj(id);
+      if (!obj || obj.locked) return false;
+      if (obj.type === 'text' || obj.type === 'sticky' || SHAPE_TYPES.has(obj.type)) {
+        this._openTextEditor(obj);
+        return true;
+      }
+      return false;
     }
 
     setPaper(paper, paperTone) {
@@ -770,12 +792,41 @@
       }
       if (this.callbacks.onStageInteract) this.callbacks.onStageInteract();
 
+      this._lastPointerWasTouch = e.pointerType === 'touch';
       const local = this._getLocalPt(e);
-      this.activePointers.set(e.pointerId, local);
+      this.activePointers.set(e.pointerId, {
+        x: local.x,
+        y: local.y,
+        clientX: e.clientX,
+        clientY: e.clientY
+      });
 
-      // Two-finger pinch zoom/pan
+      // Two-finger gesture: page scroll in scrollMode, pinch zoom/pan otherwise
       if (this.activePointers.size === 2) {
         const pts = Array.from(this.activePointers.values());
+        if (this.options.scrollMode) {
+          if (
+            this.dragState &&
+            this.dragState.mode === 'drawFreehand' &&
+            ((this.dragState.obj.points && this.dragState.obj.points.length <= 5) ||
+              Date.now() - (this.dragState.startedAt || 0) < 160)
+          ) {
+            this.page.objects = this.page.objects.filter(o => o.id !== this.dragState.obj.id);
+            if (this.undoStack.length) {
+              this.undoStack.pop();
+              this._notifyHistory();
+            }
+            this.requestRender();
+          }
+          this.dragState = null;
+          this.pinchState = null;
+          this._touchScrollDrag = null;
+          this._twoFingerScroll = {
+            lastMidX: (pts[0].clientX + pts[1].clientX) / 2,
+            lastMidY: (pts[0].clientY + pts[1].clientY) / 2
+          };
+          return;
+        }
         const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
         const mid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
         this.dragState = null;
@@ -801,6 +852,16 @@
         return;
       }
 
+      // Stylus-only palm rejection: single touch scrolls the page instead of drawing
+      if (this.stylusOnly && e.pointerType === 'touch' && this.scrollContainer) {
+        this._touchScrollDrag = {
+          pointerId: e.pointerId,
+          lastClientX: e.clientX,
+          lastClientY: e.clientY
+        };
+        return;
+      }
+
       if (e.button !== 0 && e.pointerType === 'mouse') return;
       try { this.canvas.setPointerCapture(e.pointerId); } catch (_) {}
 
@@ -817,6 +878,7 @@
         const obj = {
           id: uid(isHl ? 'hl' : 'pen'),
           type: isHl ? 'highlighter' : 'freehand',
+          isStylus: !isHl && e.pointerType === 'pen',
           points: [{ x: world.x, y: world.y, p: e.pressure || 0.5 }],
           strokeColor: this.props.strokeColor,
           strokeWidth: isHl ? Math.max(12, this.props.strokeWidth * 3) : this.props.strokeWidth,
@@ -824,7 +886,7 @@
           opacity: isHl ? 0.36 : this.props.opacity
         };
         this.page.objects.push(obj);
-        this.dragState = { mode: 'drawFreehand', obj };
+        this.dragState = { mode: 'drawFreehand', obj, startedAt: Date.now() };
         this.requestRender();
         return;
       }
@@ -1009,7 +1071,39 @@
     _handlePointerMove(e) {
       if (!this.activePointers.has(e.pointerId)) return;
       const local = this._getLocalPt(e);
-      this.activePointers.set(e.pointerId, local);
+      this.activePointers.set(e.pointerId, {
+        x: local.x,
+        y: local.y,
+        clientX: e.clientX,
+        clientY: e.clientY
+      });
+
+      if (this._twoFingerScroll && this.activePointers.size === 2 && this.scrollContainer) {
+        const pts = Array.from(this.activePointers.values());
+        const midX = (pts[0].clientX + pts[1].clientX) / 2;
+        const midY = (pts[0].clientY + pts[1].clientY) / 2;
+        const dx = midX - this._twoFingerScroll.lastMidX;
+        const dy = midY - this._twoFingerScroll.lastMidY;
+        this.scrollContainer.scrollTop -= dy;
+        if (this.scrollContainer.scrollWidth > this.scrollContainer.clientWidth) {
+          this.scrollContainer.scrollLeft -= dx;
+        }
+        this._twoFingerScroll.lastMidX = midX;
+        this._twoFingerScroll.lastMidY = midY;
+        return;
+      }
+
+      if (this._touchScrollDrag && e.pointerId === this._touchScrollDrag.pointerId && this.scrollContainer) {
+        const dy = e.clientY - this._touchScrollDrag.lastClientY;
+        const dx = e.clientX - this._touchScrollDrag.lastClientX;
+        this.scrollContainer.scrollTop -= dy;
+        if (this.scrollContainer.scrollWidth > this.scrollContainer.clientWidth) {
+          this.scrollContainer.scrollLeft -= dx;
+        }
+        this._touchScrollDrag.lastClientY = e.clientY;
+        this._touchScrollDrag.lastClientX = e.clientX;
+        return;
+      }
 
       if (this.pinchState && this.activePointers.size === 2) {
         const pts = Array.from(this.activePointers.values());
@@ -1153,6 +1247,11 @@
       this.activePointers.delete(e.pointerId);
       if (this.activePointers.size < 2) {
         this.pinchState = null;
+        this._twoFingerScroll = null;
+      }
+      if (this._touchScrollDrag && e.pointerId === this._touchScrollDrag.pointerId) {
+        this._touchScrollDrag = null;
+        return;
       }
       if (!this.dragState) return;
       const st = this.dragState;
@@ -1250,7 +1349,10 @@
       const tl = this.worldToScreen(b.x, b.y);
       const ta = this.textarea;
       const z = this.view.zoom;
-      const fontSize = Math.max(11, (obj.fontSize || 15) * z);
+      const isMobileVw = typeof window !== 'undefined' && window.innerWidth < 768;
+      const fontSize = isMobileVw
+        ? Math.max(16, (obj.fontSize || 15) * z)
+        : Math.max(11, (obj.fontSize || 15) * z);
       ta.style.display = 'block';
       ta.style.left = Math.round(tl.x) + 'px';
       ta.style.top = Math.round(tl.y) + 'px';
@@ -1264,6 +1366,9 @@
       setTimeout(() => {
         ta.focus();
         ta.select();
+        if (typeof ta.scrollIntoView === 'function') {
+          try { ta.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (_) {}
+        }
       }, 10);
       this.requestRender();
     }
@@ -1359,8 +1464,14 @@
       obj.x = x; obj.y = y; obj.w = w; obj.h = h;
     }
 
+    _isCoarseInput() {
+      return this._lastPointerWasTouch ||
+        (typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches);
+    }
+
     _hitTestHandle(obj, world) {
-      const tol = 10 / this.view.zoom;
+      const coarse = this._isCoarseInput();
+      const tol = (coarse ? 22 : 10) / this.view.zoom;
       if (LINE_TYPES.has(obj.type)) {
         if (Math.hypot(world.x - obj.x1, world.y - obj.y1) <= tol) return 'p1';
         if (Math.hypot(world.x - obj.x2, world.y - obj.y2) <= tol) return 'p2';
@@ -1371,7 +1482,7 @@
       const cy = b.y + b.h / 2;
       const pt = rotatePoint(world.x, world.y, cx, cy, -(obj.rotation || 0));
 
-      const rotY = b.y - 24 / this.view.zoom;
+      const rotY = b.y - (coarse ? 30 : 24) / this.view.zoom;
       if (Math.hypot(pt.x - cx, pt.y - rotY) <= tol * 1.2) return 'rot';
 
       const handles = [
@@ -1393,7 +1504,8 @@
     }
 
     _hitTestObj(obj, world) {
-      const tol = Math.max(6, (obj.strokeWidth || 2)) / this.view.zoom + 4 / this.view.zoom;
+      const extra = this._isCoarseInput() ? 12 : 4;
+      const tol = Math.max(6, (obj.strokeWidth || 2)) / this.view.zoom + extra / this.view.zoom;
       if (obj.type === 'freehand' || obj.type === 'highlighter') {
         const pts = obj.points || [];
         for (let i = 0; i < pts.length - 1; i++) {
@@ -1410,7 +1522,8 @@
       const cx = b.x + b.w / 2;
       const cy = b.y + b.h / 2;
       const pt = rotatePoint(world.x, world.y, cx, cy, -(obj.rotation || 0));
-      return pt.x >= b.x - 4 && pt.x <= b.x + b.w + 4 && pt.y >= b.y - 4 && pt.y <= b.y + b.h + 4;
+      const boxPad = extra / this.view.zoom;
+      return pt.x >= b.x - boxPad && pt.x <= b.x + b.w + boxPad && pt.y >= b.y - boxPad && pt.y <= b.y + b.h + boxPad;
     }
 
     _hitTestObjects(world) {
@@ -1644,7 +1757,8 @@
         ctx.stroke();
 
         // Subtle stationery margin line
-        const marginX = 44 * view.zoom + view.x;
+        const baseMargin = width < 460 ? 32 : 44;
+        const marginX = baseMargin * view.zoom + view.x;
         if (marginX > 0 && marginX < width) {
           ctx.strokeStyle = palette.isDark ? 'rgba(155, 196, 114, 0.14)' : 'rgba(185, 28, 28, 0.12)';
           ctx.beginPath();
@@ -1696,20 +1810,44 @@
       if (obj.type === 'freehand' || obj.type === 'highlighter') {
         const pts = obj.points || [];
         if (pts.length) {
+          const hasPressure = obj.isStylus && pts.length > 2 && pts.some(pt => pt.p > 0 && pt.p !== 0.5 && pt.p < 1);
           ctx.strokeStyle = stroke;
-          ctx.lineWidth = sw;
           ctx.lineCap = 'round';
           ctx.lineJoin = 'round';
-          ctx.beginPath();
-          ctx.moveTo(pts[0].x, pts[0].y);
-          for (let i = 1; i < pts.length - 1; i++) {
-            const mx = (pts[i].x + pts[i + 1].x) / 2;
-            const my = (pts[i].y + pts[i + 1].y) / 2;
-            ctx.quadraticCurveTo(pts[i].x, pts[i].y, mx, my);
+          if (hasPressure) {
+            for (let i = 1; i < pts.length; i++) {
+              const p0 = pts[i - 1];
+              const p1 = pts[i];
+              const mx = i < pts.length - 1 ? (p0.x + p1.x) / 2 : p1.x;
+              const my = i < pts.length - 1 ? (p0.y + p1.y) / 2 : p1.y;
+              const pressure = clamp(p0.p || 0.5, 0.1, 1);
+              ctx.lineWidth = Math.max(0.8, sw * (0.55 + pressure * 0.9));
+              ctx.beginPath();
+              if (i === 1) {
+                ctx.moveTo(p0.x, p0.y);
+                ctx.lineTo(mx, my);
+              } else {
+                const prev = pts[i - 2];
+                const pmx = (prev.x + p0.x) / 2;
+                const pmy = (prev.y + p0.y) / 2;
+                ctx.moveTo(pmx, pmy);
+                ctx.quadraticCurveTo(p0.x, p0.y, mx, my);
+              }
+              ctx.stroke();
+            }
+          } else {
+            ctx.lineWidth = sw;
+            ctx.beginPath();
+            ctx.moveTo(pts[0].x, pts[0].y);
+            for (let i = 1; i < pts.length - 1; i++) {
+              const mx = (pts[i].x + pts[i + 1].x) / 2;
+              const my = (pts[i].y + pts[i + 1].y) / 2;
+              ctx.quadraticCurveTo(pts[i].x, pts[i].y, mx, my);
+            }
+            const last = pts[pts.length - 1];
+            ctx.lineTo(last.x, last.y);
+            ctx.stroke();
           }
-          const last = pts[pts.length - 1];
-          ctx.lineTo(last.x, last.y);
-          ctx.stroke();
         }
         ctx.restore();
         return;
@@ -1869,6 +2007,7 @@
     _drawSelectionBox(ctx, obj, zoom, showHandles) {
       ctx.save();
       const invZ = 1 / zoom;
+      const coarse = this._isCoarseInput();
       ctx.strokeStyle = obj.locked ? '#B45309' : '#3F621A';
       ctx.lineWidth = 1.5 * invZ;
 
@@ -1880,7 +2019,7 @@
         ctx.stroke();
         if (showHandles && !obj.locked) {
           ctx.setLineDash([]);
-          const r = 5 * invZ;
+          const r = (coarse ? 7 : 5) * invZ;
           [[obj.x1, obj.y1], [obj.x2, obj.y2]].forEach(([hx, hy]) => {
             ctx.fillStyle = '#FFFFFF';
             ctx.beginPath();
@@ -1907,7 +2046,7 @@
 
       if (showHandles && !obj.locked) {
         ctx.setLineDash([]);
-        const hs = 8 * invZ;
+        const hs = (coarse ? 12 : 8) * invZ;
         const half = hs / 2;
         const pts = [
           [b.x, b.y], [cx, b.y], [b.x + b.w, b.y],
@@ -1921,13 +2060,13 @@
         });
 
         // Rotation handle
-        const rotY = b.y - 24 * invZ;
+        const rotY = b.y - (coarse ? 30 : 24) * invZ;
         ctx.beginPath();
         ctx.moveTo(cx, b.y);
         ctx.lineTo(cx, rotY);
         ctx.stroke();
         ctx.beginPath();
-        ctx.arc(cx, rotY, 5 * invZ, 0, Math.PI * 2);
+        ctx.arc(cx, rotY, (coarse ? 6.5 : 5) * invZ, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
       }

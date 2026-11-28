@@ -355,6 +355,19 @@ function updateHomeToolsMeta() {
     pvSub.textContent = `${pvCount} deyimsel fiil · ${pvEntries.length} ünite`;
   }
 
+  const prepStats = typeof getPrepStats === 'function' ? getPrepStats() : null;
+  const prepBadge = document.getElementById('prep-count-badge');
+  const prepSub = document.getElementById('home-prep-sub');
+  if (prepBadge && prepStats && prepStats.total > 0) {
+    prepBadge.textContent = prepStats.total;
+    prepBadge.style.display = 'inline-block';
+  }
+  if (prepSub && prepStats && prepStats.total > 0) {
+    prepSub.textContent = prepStats.learned > 0
+      ? `${prepStats.learned}/${prepStats.total} kalıp öğrenildi · Edatı bul & yaz`
+      : `${prepStats.total} edat kalıbı · Edatı bul & yaz`;
+  }
+
   const passages = typeof READING_PASSAGES !== 'undefined' ? READING_PASSAGES : [];
   const totalRead = passages.length;
   const doneRead = typeof readingLearnedWords !== 'undefined'

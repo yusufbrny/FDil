@@ -439,7 +439,8 @@
       height: 660,
       isOpen: false,
       isFullscreen: false,
-      sidebarOpen: false
+      sidebarOpen: false,
+      stylusOnly: false
     }, ui);
     if (!CORNERS.includes(ui.corner)) ui.corner = 'br';
   }
@@ -555,6 +556,7 @@
     drawer.style.setProperty('--nb-h', ui.height + 'px');
 
     drawer.innerHTML = `
+      <div class="nb-sheet-grabber" id="nb-sheet-grabber" aria-label="Çekmeceyi büyüt veya kapat" role="button" tabindex="0"><span></span></div>
       <div class="nb-resize-handle" id="nb-resize-handle" title="Boyutlandır" aria-hidden="true">${icon('move', 12)}</div>
 
       <!-- Slim Header -->
@@ -573,10 +575,11 @@
         </div>
 
         <div class="nb-header-controls">
-          <button type="button" class="nb-icon-btn" id="nb-paper-btn" title="Sayfa Kağıdı (Çizgili / Noktalı / Kareli)" aria-label="Sayfa Kağıdı">${icon('grid', 15)}</button>
-          <button type="button" class="nb-icon-btn" id="nb-corner-btn" title="Köşe Konumu" aria-label="Köşe Konumu">${icon('sliders', 15)}</button>
-          <button type="button" class="nb-icon-btn" id="nb-export-btn" title="Dışa Aktar &amp; Yedekle" aria-label="Dışa Aktar">${icon('fileDown', 15)}</button>
-          <button type="button" class="nb-icon-btn" id="nb-fullscreen-btn" title="Tam Ekran Aç/Kapat" aria-label="Tam Ekran">${icon('maximize', 15)}</button>
+          <button type="button" class="nb-icon-btn nb-desktop-ctrl" id="nb-paper-btn" title="Sayfa Kağıdı (Çizgili / Noktalı / Kareli)" aria-label="Sayfa Kağıdı">${icon('grid', 15)}</button>
+          <button type="button" class="nb-icon-btn nb-desktop-ctrl" id="nb-corner-btn" title="Köşe Konumu" aria-label="Köşe Konumu">${icon('sliders', 15)}</button>
+          <button type="button" class="nb-icon-btn nb-desktop-ctrl" id="nb-export-btn" title="Dışa Aktar &amp; Yedekle" aria-label="Dışa Aktar">${icon('fileDown', 15)}</button>
+          <button type="button" class="nb-icon-btn nb-desktop-ctrl" id="nb-fullscreen-btn" title="Tam Ekran Aç/Kapat" aria-label="Tam Ekran">${icon('maximize', 15)}</button>
+          <button type="button" class="nb-icon-btn nb-mobile-more-btn" id="nb-more-btn" title="Diğer Seçenekler" aria-label="Diğer Seçenekler">${icon('moreVertical', 18)}</button>
           <button type="button" class="nb-icon-btn" id="nb-close-btn" title="Kapat (Esc)" aria-label="Kapat">${icon('x', 16)}</button>
         </div>
       </header>
@@ -631,10 +634,12 @@
           <div class="nb-rt-sep"></div>
           <div class="nb-swatches" id="nb-stroke-swatches"></div>
           <button type="button" class="nb-rt-btn" id="nb-style-popover-btn" title="Kalınlık, Dolgu ve Çizgi Stili">${icon('palette', 14)}<span>Stil</span></button>
-          <div class="nb-rt-sep"></div>
-          <button type="button" class="nb-tool-btn" id="nb-c-undo" title="Geri Al (Ctrl+Z)">${icon('undo', 15)}</button>
-          <button type="button" class="nb-tool-btn" id="nb-c-redo" title="Yinele (Ctrl+Y)">${icon('redo', 15)}</button>
-          <button type="button" class="nb-tool-btn is-danger" id="nb-c-clear" title="Çizimi Temizle">${icon('trash', 15)}</button>
+          <button type="button" class="nb-rt-btn" id="nb-stylus-only-btn" title="Sadece Kalemle Çiz (Parmakla Kaydır)" aria-pressed="false">${icon('hand', 15)}<span>Kalem</span></button>
+          <div class="nb-ribbon-pinned-end">
+            <button type="button" class="nb-tool-btn" id="nb-c-undo" title="Geri Al (Ctrl+Z)">${icon('undo', 15)}</button>
+            <button type="button" class="nb-tool-btn" id="nb-c-redo" title="Yinele (Ctrl+Y)">${icon('redo', 15)}</button>
+            <button type="button" class="nb-tool-btn is-danger" id="nb-c-clear" title="Çizimi Temizle">${icon('trash', 15)}</button>
+          </div>
           <input type="file" id="nb-c-img-input" accept="image/*" style="display:none">
         </div>
       </div>
@@ -667,6 +672,7 @@
             <div class="nb-pages-list" id="nb-pages-list"></div>
           </div>
         </aside>
+        <div class="nb-sidebar-scrim" id="nb-sidebar-scrim" aria-hidden="true"></div>
 
         <!-- Unified Single-Sheet Desk -->
         <div class="nb-workspace" id="nb-workspace">
@@ -689,15 +695,16 @@
               <!-- Layer 2: Transparent Vector/Ink Overlay -->
               <canvas class="nb-canvas" id="nb-canvas"></canvas>
               <textarea class="nb-inline-text-editor" id="nb-inline-text" placeholder="Metin yaz..." spellcheck="false"></textarea>
-
-              <div class="nb-selection-bar" id="nb-selection-bar">
-                <button type="button" class="nb-icon-btn" data-sel="front" title="En Öne Getir">${icon('layersFront', 14)}</button>
-                <button type="button" class="nb-icon-btn" data-sel="back" title="En Arkaya Gönder">${icon('layersBack', 14)}</button>
-                <button type="button" class="nb-icon-btn" data-sel="duplicate" title="Çoğalt (Ctrl+D)">${icon('copy', 14)}</button>
-                <button type="button" class="nb-icon-btn" data-sel="lock" id="nb-sel-lock-btn" title="Kilitle / Kilidi Aç">${icon('lock', 14)}</button>
-                <button type="button" class="nb-icon-btn is-danger" data-sel="delete" title="Sil (Del)">${icon('trash', 14)}</button>
-              </div>
             </div>
+          </div>
+
+          <div class="nb-selection-bar" id="nb-selection-bar">
+            <button type="button" class="nb-icon-btn" data-sel="edit" id="nb-sel-edit-btn" title="Metni Düzenle">${icon('edit', 15)}</button>
+            <button type="button" class="nb-icon-btn" data-sel="front" title="En Öne Getir">${icon('layersFront', 14)}</button>
+            <button type="button" class="nb-icon-btn" data-sel="back" title="En Arkaya Gönder">${icon('layersBack', 14)}</button>
+            <button type="button" class="nb-icon-btn" data-sel="duplicate" title="Çoğalt (Ctrl+D)">${icon('copy', 14)}</button>
+            <button type="button" class="nb-icon-btn" data-sel="lock" id="nb-sel-lock-btn" title="Kilitle / Kilidi Aç">${icon('lock', 14)}</button>
+            <button type="button" class="nb-icon-btn is-danger" data-sel="delete" title="Sil (Del)">${icon('trash', 14)}</button>
           </div>
 
           <!-- Slim Bottom Page-Flip Bar -->
@@ -718,6 +725,7 @@
         </div>
       </div>
 
+      <div class="nb-popover-scrim" id="nb-popover-scrim" aria-hidden="true"></div>
       <!-- Popovers anchored cleanly at drawer root -->
       <!-- 1. New Page Visual Paper Picker -->
       <div class="nb-popover nb-newpage-popover" id="nb-newpage-popover">
@@ -864,6 +872,14 @@
         </label>
       </div>
 
+      <div class="nb-popover nb-more-popover" id="nb-more-popover">
+        <div class="nb-popover-title">Sayfa &amp; Defter Seçenekleri</div>
+        <button type="button" class="nb-menu-item" data-more="paper">${icon('grid', 16)}<span>Sayfa Kağıdı (Çizgili / Noktalı / Kareli)</span></button>
+        <button type="button" class="nb-menu-item" data-more="fullscreen">${icon('maximize', 16)}<span id="nb-more-fs-label">Tam Ekran Yap</span></button>
+        <button type="button" class="nb-menu-item" data-more="corner">${icon('sliders', 16)}<span>Düğme Köşe Konumu</span></button>
+        <button type="button" class="nb-menu-item" data-more="export">${icon('fileDown', 16)}<span>Dışa Aktar &amp; Yedekle</span></button>
+      </div>
+
       <!-- Create / Edit Notebook Modal -->
       <div class="nb-modal-overlay" id="nb-book-modal">
         <div class="nb-modal-card nb-book-modal-card">
@@ -935,10 +951,12 @@
     dom = {
       dock, zones, backdrop, drawer,
       dockBadge: document.getElementById('nb-dock-badge'),
+      sheetGrabber: document.getElementById('nb-sheet-grabber'),
       resizeHandle: document.getElementById('nb-resize-handle'),
       header: document.getElementById('nb-header'),
       sidebarToggle: document.getElementById('nb-sidebar-toggle'),
       sidebar: document.getElementById('nb-sidebar'),
+      sidebarScrim: document.getElementById('nb-sidebar-scrim'),
       activeBookPill: document.getElementById('nb-active-book-pill'),
       activeBookDot: document.getElementById('nb-active-book-dot'),
       activeBookName: document.getElementById('nb-active-book-name'),
@@ -946,9 +964,11 @@
       cornerBtn: document.getElementById('nb-corner-btn'),
       exportBtn: document.getElementById('nb-export-btn'),
       fullscreenBtn: document.getElementById('nb-fullscreen-btn'),
+      moreBtn: document.getElementById('nb-more-btn'),
       closeBtn: document.getElementById('nb-close-btn'),
       ribbonWrite: document.getElementById('nb-ribbon-write'),
       ribbonDraw: document.getElementById('nb-ribbon-draw'),
+      stylusOnlyBtn: document.getElementById('nb-stylus-only-btn'),
       workspace: document.getElementById('nb-workspace'),
       desk: document.getElementById('nb-desk'),
       paperSheet: document.getElementById('nb-paper-sheet'),
@@ -971,12 +991,14 @@
       canvas: document.getElementById('nb-canvas'),
       inlineText: document.getElementById('nb-inline-text'),
       selectionBar: document.getElementById('nb-selection-bar'),
+      selEditBtn: document.getElementById('nb-sel-edit-btn'),
       selLockBtn: document.getElementById('nb-sel-lock-btn'),
       pagePrev: document.getElementById('nb-page-prev'),
       pageSelect: document.getElementById('nb-page-select'),
       pageNext: document.getElementById('nb-page-next'),
       pageAdd: document.getElementById('nb-page-add'),
       pageDel: document.getElementById('nb-page-del'),
+      popoverScrim: document.getElementById('nb-popover-scrim'),
       newpagePopover: document.getElementById('nb-newpage-popover'),
       paperPopover: document.getElementById('nb-paper-popover'),
       stylePopover: document.getElementById('nb-style-popover'),
@@ -985,6 +1007,8 @@
       eraserPopover: document.getElementById('nb-eraser-popover'),
       cornerPopover: document.getElementById('nb-corner-popover'),
       exportPopover: document.getElementById('nb-export-popover'),
+      morePopover: document.getElementById('nb-more-popover'),
+      moreFsLabel: document.getElementById('nb-more-fs-label'),
       bookModal: document.getElementById('nb-book-modal'),
       bookModalTitle: document.getElementById('nb-book-modal-title'),
       bookNameInput: document.getElementById('nb-book-name-input'),
@@ -1065,12 +1089,16 @@
         onPageMetaChange: (canvasObj, gridSnap) => {
           const snapBtn = document.getElementById('nb-c-snap-btn');
           if (snapBtn) snapBtn.classList.toggle('is-active', !!gridSnap);
+          if (dom.stylusOnlyBtn && canvasCtrl) {
+            dom.stylusOnlyBtn.classList.toggle('is-active', !!canvasCtrl.stylusOnly);
+            dom.stylusOnlyBtn.setAttribute('aria-pressed', canvasCtrl.stylusOnly ? 'true' : 'false');
+          }
           syncPaperPopovers(canvasObj);
           syncPaperBackground();
         },
         onStageInteract: () => closePopovers()
       },
-      { transparentBackground: true, scrollMode: true }
+      { transparentBackground: true, scrollMode: true, scrollContainer: dom.desk, stylusOnly: !!ui.stylusOnly }
     );
 
     if (typeof ResizeObserver !== 'undefined') {
@@ -1102,6 +1130,18 @@
     }
   }
 
+  function updateVisualViewport() {
+    if (!dom.drawer) return;
+    if (window.visualViewport && ui.isOpen && window.innerWidth < 768) {
+      const vv = window.visualViewport;
+      dom.drawer.style.setProperty('--nb-vvh', Math.round(vv.height) + 'px');
+      dom.drawer.style.setProperty('--nb-vvt', Math.round(vv.offsetTop) + 'px');
+    } else {
+      dom.drawer.style.removeProperty('--nb-vvh');
+      dom.drawer.style.removeProperty('--nb-vvt');
+    }
+  }
+
   function applyUILayout() {
     CORNERS.forEach(c => {
       dom.dock.classList.remove('pos-' + c);
@@ -1115,14 +1155,28 @@
     dom.dock.classList.toggle('is-hidden', !!ui.isOpen);
     dom.backdrop.classList.toggle('is-visible', !!ui.isOpen);
     dom.sidebar.classList.toggle('is-open', !!ui.sidebarOpen);
+    if (dom.sidebarScrim) {
+      dom.sidebarScrim.classList.toggle('is-visible', !!(ui.isOpen && ui.sidebarOpen));
+    }
     dom.sidebarToggle.classList.toggle('is-active', !!ui.sidebarOpen);
+
+    const shouldLock = !!(ui.isOpen && (ui.isFullscreen || window.innerWidth < 768));
+    document.documentElement.classList.toggle('nb-scroll-locked', shouldLock);
 
     dom.drawer.style.setProperty('--nb-w', ui.width + 'px');
     dom.drawer.style.setProperty('--nb-h', ui.height + 'px');
+    updateVisualViewport();
 
     if (dom.fullscreenBtn) {
       dom.fullscreenBtn.innerHTML = icon(ui.isFullscreen ? 'minimize' : 'maximize', 15);
       dom.fullscreenBtn.title = ui.isFullscreen ? 'Çekmece Boyutuna Dön' : 'Tam Ekran';
+    }
+    if (dom.moreFsLabel) {
+      dom.moreFsLabel.textContent = ui.isFullscreen ? 'Çekmece Boyutuna Dön' : 'Tam Ekran Yap';
+    }
+    if (dom.stylusOnlyBtn) {
+      dom.stylusOnlyBtn.classList.toggle('is-active', !!ui.stylusOnly);
+      dom.stylusOnlyBtn.setAttribute('aria-pressed', ui.stylusOnly ? 'true' : 'false');
     }
 
     dom.cornerPopover.querySelectorAll('.nb-corner-opt').forEach(opt => {
@@ -1163,10 +1217,11 @@
 
   function closePopovers() {
     activePopover = null;
+    if (dom.popoverScrim) dom.popoverScrim.classList.remove('is-visible');
     [
       dom.newpagePopover, dom.paperPopover, dom.stylePopover,
       dom.shapesPopover, dom.linesPopover, dom.eraserPopover,
-      dom.cornerPopover, dom.exportPopover
+      dom.cornerPopover, dom.exportPopover, dom.morePopover
     ].forEach(p => { if (p) p.classList.remove('is-open'); });
   }
 
@@ -1176,6 +1231,7 @@
     if (!wasOpen && el) {
       activePopover = name;
       el.classList.add('is-open');
+      if (dom.popoverScrim) dom.popoverScrim.classList.add('is-visible');
     }
   }
 
@@ -1260,6 +1316,7 @@
     }
 
     dom.paperSheet.classList.toggle('is-draw-mode', valid === 'draw');
+    if (dom.workspace) dom.workspace.classList.toggle('is-draw-mode', valid === 'draw');
     dom.ribbonWrite.classList.toggle('is-active', valid === 'write');
     dom.ribbonDraw.classList.toggle('is-active', valid === 'draw');
 
@@ -1314,7 +1371,7 @@
     saveStoreNow();
     loadActivePageIntoView();
     renderSidebar();
-    if (ui.sidebarOpen && !ui.isFullscreen) {
+    if (ui.sidebarOpen && (!ui.isFullscreen || window.innerWidth < 900)) {
       ui.sidebarOpen = false;
       saveUI();
       applyUILayout();
@@ -1338,7 +1395,7 @@
     loadActivePageIntoView();
     renderSidebar();
 
-    if (ui.sidebarOpen && !ui.isFullscreen) {
+    if (ui.sidebarOpen && (!ui.isFullscreen || window.innerWidth < 900)) {
       ui.sidebarOpen = false;
       saveUI();
       applyUILayout();
@@ -1688,6 +1745,15 @@
   function syncSelectionUI(selected) {
     const hasSel = selected && selected.length > 0;
     dom.selectionBar.classList.toggle('is-visible', hasSel);
+    if (hasSel && dom.selEditBtn) {
+      const obj = selected.length === 1 ? selected[0] : null;
+      const showEdit = !!(
+        obj && !obj.locked &&
+        (obj.type === 'text' || obj.type === 'sticky' ||
+          !['freehand', 'highlighter', 'line', 'arrow', 'doubleArrow', 'image'].includes(obj.type))
+      );
+      dom.selEditBtn.style.display = showEdit ? '' : 'none';
+    }
     if (hasSel && dom.selLockBtn) {
       const allLocked = selected.every(o => o.locked);
       dom.selLockBtn.innerHTML = icon(allLocked ? 'lockOpen' : 'lock', 14);
@@ -1826,10 +1892,10 @@
       else openNotebook();
     });
 
-    // 2. Draggable Drawer Header
+    // 2. Draggable Drawer Header (tablet/desktop) & Sheet Grabber (mobile)
     let headerDrag = null;
     dom.header.addEventListener('pointerdown', (e) => {
-      if (ui.isFullscreen) return;
+      if (ui.isFullscreen || window.innerWidth < 640) return;
       if (e.target.closest('button, input, select, label, a, .nb-popover')) return;
       try { dom.header.setPointerCapture(e.pointerId); } catch (_) {}
       const rect = dom.drawer.getBoundingClientRect();
@@ -1879,6 +1945,46 @@
       if (e.target.closest('button, input, select, label, a, .nb-popover')) return;
       toggleNotebookFullscreen();
     });
+
+    if (dom.sheetGrabber) {
+      let grabDrag = null;
+      dom.sheetGrabber.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0 && e.pointerType === 'mouse') return;
+        try { dom.sheetGrabber.setPointerCapture(e.pointerId); } catch (_) {}
+        grabDrag = { id: e.pointerId, startY: e.clientY, dy: 0 };
+        dom.drawer.classList.add('is-sheet-dragging');
+      });
+      window.addEventListener('pointermove', (e) => {
+        if (!grabDrag || e.pointerId !== grabDrag.id) return;
+        grabDrag.dy = e.clientY - grabDrag.startY;
+        if (grabDrag.dy > 0) {
+          dom.drawer.style.transform = `translate3d(0, ${Math.min(160, grabDrag.dy)}px, 0)`;
+        }
+      });
+      const finishGrab = (e) => {
+        if (!grabDrag || e.pointerId !== grabDrag.id) return;
+        const dy = grabDrag.dy;
+        grabDrag = null;
+        dom.drawer.classList.remove('is-sheet-dragging');
+        dom.drawer.style.transform = '';
+        if (dy > 70) {
+          if (ui.isFullscreen) toggleNotebookFullscreen();
+          else closeNotebook();
+        } else if (dy < -50) {
+          if (!ui.isFullscreen) toggleNotebookFullscreen();
+        } else if (Math.abs(dy) < 10) {
+          toggleNotebookFullscreen();
+        }
+      };
+      window.addEventListener('pointerup', finishGrab);
+      window.addEventListener('pointercancel', finishGrab);
+      dom.sheetGrabber.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggleNotebookFullscreen();
+        }
+      });
+    }
 
     // 3. Corner-aware Resize Handle
     let resizeDrag = null;
@@ -1942,6 +2048,33 @@
       e.stopPropagation();
       togglePopover('export', dom.exportPopover);
     });
+    if (dom.moreBtn) {
+      dom.moreBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        togglePopover('more', dom.morePopover);
+      });
+    }
+    if (dom.morePopover) {
+      dom.morePopover.addEventListener('click', (e) => {
+        const item = e.target.closest('[data-more]');
+        if (!item) return;
+        const act = item.dataset.more;
+        if (act === 'paper') togglePopover('paper', dom.paperPopover);
+        else if (act === 'fullscreen') { closePopovers(); toggleNotebookFullscreen(); }
+        else if (act === 'corner') togglePopover('corner', dom.cornerPopover);
+        else if (act === 'export') togglePopover('export', dom.exportPopover);
+      });
+    }
+    if (dom.sidebarScrim) {
+      dom.sidebarScrim.addEventListener('click', () => {
+        ui.sidebarOpen = false;
+        saveUI();
+        applyUILayout();
+      });
+    }
+    if (dom.popoverScrim) {
+      dom.popoverScrim.addEventListener('click', closePopovers);
+    }
 
     dom.cornerPopover.querySelectorAll('.nb-corner-opt').forEach(opt => {
       opt.addEventListener('click', () => {
@@ -2205,6 +2338,18 @@
       e.stopPropagation();
       togglePopover('style', dom.stylePopover);
     });
+    if (dom.stylusOnlyBtn) {
+      dom.stylusOnlyBtn.addEventListener('click', () => {
+        ui.stylusOnly = !ui.stylusOnly;
+        saveUI();
+        if (canvasCtrl) canvasCtrl.setStylusOnly(ui.stylusOnly);
+        if (typeof showToast === 'function') {
+          showToast(ui.stylusOnly
+            ? 'Sadece kalemle çizim açık — parmakla sayfayı kaydırabilirsin'
+            : 'Parmak ve kalemle çizim açık');
+        }
+      });
+    }
 
     dom.shapesPopover.addEventListener('click', (e) => {
       const ch = e.target.closest('[data-shape]');
@@ -2304,7 +2449,8 @@
       const btn = e.target.closest('[data-sel]');
       if (!btn) return;
       const act = btn.dataset.sel;
-      if (act === 'front') canvasCtrl.bringToFront();
+      if (act === 'edit') canvasCtrl.editSelectedText();
+      else if (act === 'front') canvasCtrl.bringToFront();
       else if (act === 'back') canvasCtrl.sendToBack();
       else if (act === 'duplicate') canvasCtrl.duplicateSelected();
       else if (act === 'lock') canvasCtrl.toggleLockSelected();
@@ -2319,7 +2465,7 @@
     dom.pageDel.addEventListener('click', () => deletePage(getActiveNotebook().activePageIndex || 0));
 
     dom.drawer.addEventListener('pointerdown', (e) => {
-      if (!e.target.closest('.nb-popover, #nb-paper-btn, #nb-corner-btn, #nb-export-btn, #nb-style-popover-btn, #nb-shapes-btn, #nb-lines-btn, #nb-eraser-btn, #nb-page-add, #nb-sidebar-newpage-btn')) {
+      if (!e.target.closest('.nb-popover, #nb-paper-btn, #nb-corner-btn, #nb-export-btn, #nb-more-btn, #nb-style-popover-btn, #nb-shapes-btn, #nb-lines-btn, #nb-eraser-btn, #nb-page-add, #nb-sidebar-newpage-btn')) {
         closePopovers();
       }
     });
@@ -2420,7 +2566,13 @@
       }
     });
 
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', updateVisualViewport);
+      window.visualViewport.addEventListener('scroll', updateVisualViewport);
+    }
+
     window.addEventListener('resize', () => {
+      updateVisualViewport();
       if (ui.isOpen) syncPaperBackground();
     });
   }

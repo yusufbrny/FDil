@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fdil-v17';
+const CACHE_NAME = 'fdil-v19';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -15,9 +15,11 @@ const STATIC_ASSETS = [
   './css/coach-profile-leaderboard.css',
   './css/notebook.css',
   './css/weekly-drills.css',
+  './css/prepositions.css',
   './js/data/units.js',
   './js/data/meta.js',
   './js/data/phrasal-verbs.js',
+  './js/data/prepositions.js',
   './js/data/reading-passages.js',
   './js/data/weekly-words.js',
   './js/core/icons.js',
@@ -30,6 +32,7 @@ const STATIC_ASSETS = [
   './js/modules/learn-modal.js',
   './js/modules/my-words.js',
   './js/modules/phrasal-verbs.js',
+  './js/modules/prepositions.js',
   './js/modules/search-dict.js',
   './js/modules/reading.js',
   './js/modules/weekly-drills.js',

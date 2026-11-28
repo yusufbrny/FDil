@@ -86,6 +86,8 @@
         _st.correct++;
         if (weekId && typeof global.markWeeklyWordLearned === 'function') {
           global.markWeeklyWordLearned(weekId, word[0], true, true);
+        } else if (word._prepId && typeof global.markPrepLearned === 'function') {
+          global.markPrepLearned(word._prepId, true, true);
         }
         if (typeof global.errorBox !== 'undefined' && global.errorBox[key]) {
           delete global.errorBox[key];
@@ -120,6 +122,10 @@
     const fn = _st?.backFn || '';
     if (fn === 'goHome()' && typeof global.goHome === 'function') {
       global.goHome();
+      return;
+    }
+    if (fn === 'showPrepositions()' && typeof global.showPrepositions === 'function') {
+      global.showPrepositions();
       return;
     }
     if (_st?.weekId && typeof global.showWeeklyVocab === 'function') {

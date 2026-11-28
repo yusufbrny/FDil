@@ -1,0 +1,83 @@
+/* ═══════════════════════════════════════════════════════════════
+   Preposition Kalıpları Screen & Drill Styles
+   Compliant with DESIGN.md semantic tokens & contrast rules
+   ═══════════════════════════════════════════════════════════════ */
+
+.pr-practice-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+@media (min-width: 640px) {
+    .pr-practice-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.pr-group-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+}
+
+.pr-group-pills .pill {
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.pr-prep-pill {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 6px;
+    background: var(--tone-green-bg);
+    color: var(--tone-green-fg);
+    border: 1px solid var(--tone-green-border);
+    font-weight: 700;
+    font-size: 12.5px;
+}
+
+.pr-prep-pill.is-masked {
+    background: var(--tone-amber-bg);
+    color: var(--tone-amber-fg);
+    border-color: var(--tone-amber-border);
+    letter-spacing: 0.08em;
+}
+
+.pr-drill-prompt {
+    font-family: var(--font-serif);
+    font-size: 25px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.pr-blank {
+    display: inline-block;
+    min-width: 64px;
+    padding: 0 10px;
+    margin: 0 3px;
+    border-radius: 8px;
+    background: var(--tone-green-bg);
+    color: var(--tone-green-fg);
+    border: 1.5px dashed var(--tone-green-border);
+    text-align: center;
+    font-family: var(--font-sans);
+    font-size: 19px;
+    font-weight: 800;
+    vertical-align: baseline;
+}
+
+.pr-drill-tr {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text2);
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+}
